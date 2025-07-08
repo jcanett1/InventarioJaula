@@ -1,4 +1,4 @@
-import supabase from './supabase.js';
+import supabase from '../backend/supabase.js';
 
 document.addEventListener('DOMContentLoaded', function() {
     // Configuración de la fecha actual para los campos de fecha
@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('fecha-salida').value = today;
 
     // Manejo de pestañas
-    const tabLinks = document.querySelectorAll('#tabs .tab-link');
+    const tabLinks = document.querySelectorAll('.tab-link');
     const tabContents = document.querySelectorAll('.tab-content');
     tabLinks.forEach(link => {
         link.addEventListener('click', function(e) {
@@ -95,30 +95,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 salidasItems.appendChild(row);
             });
 
-            // Añadir event listeners para botones de editar y eliminar
-            document.querySelectorAll('.editar-salida').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const salidaId = parseInt(this.getAttribute('data-id'));
-                    openEditModal(salidaId);
-                });
-            });
-
-            document.querySelectorAll('.eliminar-salida').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const salidaId = parseInt(this.getAttribute('data-id'));
-                    confirmDeleteSalida(salidaId);
-                });
-            });
-
             // Actualizar información de paginación
             document.getElementById('salidas-showing').textContent = mockData.salidas.length;
             document.getElementById('salidas-total').textContent = mockData.salidas.length;
-            document.getElementById('current-page-salidas').textContent = '1';
-            document.getElementById('total-pages-salidas').textContent = '1';
-        }, 500);
+        }, 1000);
     }
 
-    // Formulario de registro de salida
+    // Formulario de entrega de accesorios
     const entregaForm = document.getElementById('entrega-form');
     entregaForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -489,8 +472,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // Actualizar información de paginación
             document.getElementById('items-showing').textContent = mockData.inventory.length;
             document.getElementById('items-total').textContent = mockData.inventory.length;
-            document.getElementById('current-page').textContent = '1';
-            document.getElementById('total-pages').textContent = '1';
         }, 500);
     }
 });
