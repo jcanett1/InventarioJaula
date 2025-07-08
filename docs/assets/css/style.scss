@@ -1,1 +1,20 @@
+/* Estilos para el modal */
+#modal-editar {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+}
 
+#modal-editar.show {
+  display: flex;
+}
+
+#modal-editar .bg-white {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 400px;
+  margin: auto;
+}
