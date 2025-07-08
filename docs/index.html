@@ -385,42 +385,6 @@
       </form>
     </div>
   </div>
-  
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const tabLinks = document.querySelectorAll('#tabs .tab-link');
-            const tabContents = document.querySelectorAll('.tab-content');
-
-            tabLinks.forEach(link => {
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-
-                    // Remover la clase 'active' de todas las pestañas y contenidos
-                    tabLinks.forEach(tabLink => tabLink.classList.remove('active'));
-                    tabContents.forEach(tabContent => tabContent.classList.remove('active'));
-
-                    // Agregar la clase 'active' a la pestaña y contenido seleccionados
-                    const targetTab = link.getAttribute('data-tab');
-                    document.getElementById(targetTab).classList.add('active');
-                    link.classList.add('active');
-                });
-            });
-
-            // Lógica para mostrar y ocultar el modal
-            const modalEditar = document.getElementById('modal-editar');
-            const cerrarModal = document.getElementById('cerrar-modal');
-
-            cerrarModal.addEventListener('click', () => {
-                modalEditar.classList.remove('show');
-            });
-
-            // Ejemplo de cómo mostrar el modal
-            // Puedes agregar este evento a cualquier elemento que desees abrir el modal
-            // document.getElementById('algún-botón').addEventListener('click', () => {
-            //     modalEditar.classList.add('show');
-            // });
-        });
-    </script>
   <script src="/js/app.js"></script>
 </body>
 </html>
