@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Completa</title>
+  <title>Sistema de Gestión de Inventario - Versión Corregida</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -653,6 +653,50 @@
       ]
     };
 
+    // ===== FUNCIONES DE UTILIDAD PARA MANEJO SEGURO DEL DOM =====
+    function safeGetElement(id) {
+      const element = document.getElementById(id);
+      if (!element) {
+        console.warn(`Elemento con ID '${id}' no encontrado`);
+      }
+      return element;
+    }
+
+    function safeSetTextContent(id, text) {
+      const element = safeGetElement(id);
+      if (element) {
+        element.textContent = text;
+      }
+    }
+
+    function safeSetValue(id, value) {
+      const element = safeGetElement(id);
+      if (element) {
+        element.value = value;
+      }
+    }
+
+    function safeSetInnerHTML(id, html) {
+      const element = safeGetElement(id);
+      if (element) {
+        element.innerHTML = html;
+      }
+    }
+
+    function safeAddClass(id, className) {
+      const element = safeGetElement(id);
+      if (element) {
+        element.classList.add(className);
+      }
+    }
+
+    function safeRemoveClass(id, className) {
+      const element = safeGetElement(id);
+      if (element) {
+        element.classList.remove(className);
+      }
+    }
+
     // ===== INICIALIZACIÓN =====
     document.addEventListener('DOMContentLoaded', function() {
       initSupabase();
@@ -679,21 +723,23 @@
     }
 
     function updateConnectionStatus(type, message) {
-      const statusElement = document.getElementById('connection-status');
-      statusElement.className = `connection-indicator connection-${type}`;
-      
-      const icon = type === 'success' ? 'fa-check-circle' : 
-                   type === 'error' ? 'fa-exclamation-triangle' : 
-                   'fa-spinner fa-spin';
-      
-      statusElement.innerHTML = `<i class="fas ${icon} mr-2"></i><span>${message}</span>`;
+      const statusElement = safeGetElement('connection-status');
+      if (statusElement) {
+        statusElement.className = `connection-indicator connection-${type}`;
+        
+        const icon = type === 'success' ? 'fa-check-circle' : 
+                     type === 'error' ? 'fa-exclamation-triangle' : 
+                     'fa-spinner fa-spin';
+        
+        statusElement.innerHTML = `<i class="fas ${icon} mr-2"></i><span>${message}</span>`;
+      }
     }
 
     function setCurrentDateTime() {
       const now = new Date();
       const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
-      document.getElementById('fecha-entrada').value = localDateTime;
-      document.getElementById('fecha-salida').value = localDateTime;
+      safeSetValue('fecha-entrada', localDateTime);
+      safeSetValue('fecha-salida', localDateTime);
     }
 
     // ===== MANEJO DE EVENTOS =====
@@ -704,34 +750,55 @@
       });
 
       // Formularios
-      document.getElementById('entrada-form').addEventListener('submit', handleEntradaSubmit);
-      document.getElementById('entrega-form').addEventListener('submit', handleEntregaSubmit);
+      const entradaForm = safeGetElement('entrada-form');
+      const entregaForm = safeGetElement('entrega-form');
+      
+      if (entradaForm) entradaForm.addEventListener('submit', handleEntradaSubmit);
+      if (entregaForm) entregaForm.addEventListener('submit', handleEntregaSubmit);
 
       // Botones de limpiar
-      document.getElementById('limpiar-formulario-entrada').addEventListener('click', clearEntradaForm);
-      document.getElementById('limpiar-formulario-entrega').addEventListener('click', clearEntregaForm);
+      const limpiarEntrada = safeGetElement('limpiar-formulario-entrada');
+      const limpiarEntrega = safeGetElement('limpiar-formulario-entrega');
+      
+      if (limpiarEntrada) limpiarEntrada.addEventListener('click', clearEntradaForm);
+      if (limpiarEntrega) limpiarEntrega.addEventListener('click', clearEntregaForm);
 
       // Botones de cancelar
-      document.getElementById('cancelar-entrada').addEventListener('click', cancelEntradaEdit);
-      document.getElementById('cancelar-entrega').addEventListener('click', cancelEntregaEdit);
+      const cancelarEntrada = safeGetElement('cancelar-entrada');
+      const cancelarEntrega = safeGetElement('cancelar-entrega');
+      
+      if (cancelarEntrada) cancelarEntrada.addEventListener('click', cancelEntradaEdit);
+      if (cancelarEntrega) cancelarEntrega.addEventListener('click', cancelEntregaEdit);
 
       // Filtros
-      document.getElementById('aplicar-filtros').addEventListener('click', applyStockFilters);
-      document.getElementById('limpiar-filtros').addEventListener('click', clearStockFilters);
-      document.getElementById('aplicar-filtros-entregas').addEventListener('click', applyEntregasFilters);
-      document.getElementById('limpiar-filtros-entregas').addEventListener('click', clearEntregasFilters);
+      const aplicarFiltros = safeGetElement('aplicar-filtros');
+      const limpiarFiltros = safeGetElement('limpiar-filtros');
+      const aplicarFiltrosEntregas = safeGetElement('aplicar-filtros-entregas');
+      const limpiarFiltrosEntregas = safeGetElement('limpiar-filtros-entregas');
+      
+      if (aplicarFiltros) aplicarFiltros.addEventListener('click', applyStockFilters);
+      if (limpiarFiltros) limpiarFiltros.addEventListener('click', clearStockFilters);
+      if (aplicarFiltrosEntregas) aplicarFiltrosEntregas.addEventListener('click', applyEntregasFilters);
+      if (limpiarFiltrosEntregas) limpiarFiltrosEntregas.addEventListener('click', clearEntregasFilters);
 
       // Exportación
-      document.getElementById('exportar-excel').addEventListener('click', () => exportStock('excel'));
-      document.getElementById('exportar-pdf').addEventListener('click', () => exportStock('pdf'));
-      document.getElementById('exportar-excel-entregas').addEventListener('click', () => exportEntregas('excel'));
-      document.getElementById('exportar-pdf-entregas').addEventListener('click', () => exportEntregas('pdf'));
+      const exportarExcel = safeGetElement('exportar-excel');
+      const exportarPdf = safeGetElement('exportar-pdf');
+      const exportarExcelEntregas = safeGetElement('exportar-excel-entregas');
+      const exportarPdfEntregas = safeGetElement('exportar-pdf-entregas');
+      
+      if (exportarExcel) exportarExcel.addEventListener('click', () => exportStock('excel'));
+      if (exportarPdf) exportarPdf.addEventListener('click', () => exportStock('pdf'));
+      if (exportarExcelEntregas) exportarExcelEntregas.addEventListener('click', () => exportEntregas('excel'));
+      if (exportarPdfEntregas) exportarPdfEntregas.addEventListener('click', () => exportEntregas('pdf'));
 
       // Actualizar
-      document.getElementById('actualizar-stock').addEventListener('click', loadStock);
+      const actualizarStock = safeGetElement('actualizar-stock');
+      if (actualizarStock) actualizarStock.addEventListener('click', loadStock);
 
       // Selector de accesorio en entregas
-      document.getElementById('accesorio-id').addEventListener('change', updateStockInfo);
+      const accesorioId = safeGetElement('accesorio-id');
+      if (accesorioId) accesorioId.addEventListener('change', updateStockInfo);
     }
 
     function handleTabClick(e) {
@@ -747,7 +814,8 @@
       });
       
       this.classList.add('active', 'text-blue-600', 'border-blue-600');
-      document.getElementById(`${tabId}-tab`).classList.add('active');
+      const tabContent = safeGetElement(`${tabId}-tab`);
+      if (tabContent) tabContent.classList.add('active');
       
       // Cargar datos según la pestaña
       if (tabId === 'stock') {
@@ -760,13 +828,15 @@
 
     // ===== MANEJO DE IMÁGENES =====
     function setupImageUpload() {
-      const uploadArea = document.getElementById('image-upload-area');
-      const fileInput = document.getElementById('imagenes');
+      const uploadArea = safeGetElement('image-upload-area');
+      const fileInput = safeGetElement('imagenes');
       
-      uploadArea.addEventListener('click', () => fileInput.click());
-      uploadArea.addEventListener('dragover', handleDragOver);
-      uploadArea.addEventListener('drop', handleDrop);
-      fileInput.addEventListener('change', handleFileSelect);
+      if (uploadArea && fileInput) {
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', handleDragOver);
+        uploadArea.addEventListener('drop', handleDrop);
+        fileInput.addEventListener('change', handleFileSelect);
+      }
     }
 
     function handleDragOver(e) {
@@ -779,13 +849,18 @@
       e.currentTarget.classList.remove('dragover');
       
       const files = e.dataTransfer.files;
-      document.getElementById('imagenes').files = files;
-      handleFileSelect({ target: { files } });
+      const fileInput = safeGetElement('imagenes');
+      if (fileInput) {
+        fileInput.files = files;
+        handleFileSelect({ target: { files } });
+      }
     }
 
     function handleFileSelect(e) {
       const files = e.target.files;
-      const previewContainer = document.getElementById('image-preview-container');
+      const previewContainer = safeGetElement('image-preview-container');
+      
+      if (!previewContainer) return;
       
       previewContainer.innerHTML = '';
       
@@ -840,18 +915,23 @@
     function removeImagePreview(button) {
       button.parentElement.remove();
       // Limpiar el input de archivos
-      document.getElementById('imagenes').value = '';
+      safeSetValue('imagenes', '');
     }
 
     function showImageModal(src) {
-      const modal = document.getElementById('image-modal');
-      const modalImage = document.getElementById('modal-image');
-      modalImage.src = src;
-      modal.classList.remove('hidden');
+      const modal = safeGetElement('image-modal');
+      const modalImage = safeGetElement('modal-image');
+      if (modal && modalImage) {
+        modalImage.src = src;
+        modal.classList.remove('hidden');
+      }
     }
 
     function closeImageModal() {
-      document.getElementById('image-modal').classList.add('hidden');
+      const modal = safeGetElement('image-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+      }
     }
 
     // ===== FUNCIONES DE BASE DE DATOS =====
@@ -949,22 +1029,24 @@
     async function handleEntradaSubmit(e) {
       e.preventDefault();
       
-      const isEditing = document.getElementById('entrada-id').value;
-      const button = document.getElementById('guardar-entrada');
-      const originalText = button.innerHTML;
+      const isEditing = safeGetElement('entrada-id')?.value;
+      const button = safeGetElement('guardar-entrada');
+      const originalText = button?.innerHTML;
       
       try {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+        if (button) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+        }
         
         // Recopilar datos
         const formData = {
-          "Número de Parte": document.getElementById('numero-parte').value.trim().toUpperCase(),
-          "Descripción del accesorio": document.getElementById('descripcion').value.trim(),
-          "Ubicación": document.getElementById('ubicacion').value.trim(),
-          "Cantidad ingresada": parseInt(document.getElementById('cantidad').value),
-          "Imágenes": document.getElementById('imagenes').files.length > 0,
-          "Fecha de Entrada": document.getElementById('fecha-entrada').value
+          "Número de Parte": safeGetElement('numero-parte')?.value?.trim()?.toUpperCase() || '',
+          "Descripción del accesorio": safeGetElement('descripcion')?.value?.trim() || '',
+          "Ubicación": safeGetElement('ubicacion')?.value?.trim() || '',
+          "Cantidad ingresada": parseInt(safeGetElement('cantidad')?.value || 0),
+          "Imágenes": (safeGetElement('imagenes')?.files?.length || 0) > 0,
+          "Fecha de Entrada": safeGetElement('fecha-entrada')?.value || ''
         };
         
         if (isEditing) {
@@ -972,8 +1054,9 @@
         }
         
         // Subir imágenes si hay
-        if (document.getElementById('imagenes').files.length > 0) {
-          const file = document.getElementById('imagenes').files[0];
+        const imageFiles = safeGetElement('imagenes')?.files;
+        if (imageFiles && imageFiles.length > 0) {
+          const file = imageFiles[0];
           const uploadResult = await uploadImage(file);
           
           if (uploadResult.error) {
@@ -1000,20 +1083,47 @@
         console.error('Error al guardar entrada:', error);
         showToast('Error al guardar entrada: ' + error.message, 'error');
       } finally {
-        button.disabled = false;
-        button.innerHTML = originalText;
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = originalText || '<i class="fas fa-save mr-2"></i><span>Guardar Entrada</span>';
+        }
       }
     }
 
+    // ===== FUNCIÓN CORREGIDA clearEntradaForm =====
     function clearEntradaForm() {
-      document.getElementById('entrada-form').reset();
-      document.getElementById('entrada-id').value = '';
-      document.getElementById('image-preview-container').innerHTML = '';
-      document.getElementById('existing-images-container').innerHTML = '';
-      document.getElementById('btn-text').textContent = 'Guardar Entrada';
-      document.getElementById('cancelar-entrada').classList.add('hidden');
-      setCurrentDateTime();
-      clearFormErrors();
+      try {
+        // Resetear formulario de manera segura
+        const form = safeGetElement('entrada-form');
+        if (form) {
+          form.reset();
+        }
+        
+        // Limpiar campos específicos de manera segura
+        safeSetValue('entrada-id', '');
+        
+        // Limpiar contenedores de imágenes
+        safeSetInnerHTML('image-preview-container', '');
+        safeSetInnerHTML('existing-images-container', '');
+        
+        // Resetear texto del botón de manera segura
+        safeSetInnerHTML('btn-text', 'Guardar Entrada');
+        
+        // Ocultar botón de cancelar
+        safeAddClass('cancelar-entrada', 'hidden');
+        
+        // Establecer fecha actual
+        setCurrentDateTime();
+        
+        // Limpiar errores del formulario
+        clearFormErrors();
+        
+        console.log('Formulario de entrada limpiado correctamente');
+      } catch (error) {
+        console.error('Error al limpiar formulario de entrada:', error);
+        // Mostrar toast de error pero no interrumpir el flujo
+        showToast('Formulario limpiado (con advertencias menores)', 'warning');
+      }
     }
 
     function cancelEntradaEdit() {
@@ -1023,8 +1133,7 @@
     // ===== FUNCIONES DE STOCK =====
     async function loadStock() {
       try {
-        const stockItems = document.getElementById('stock-items');
-        stockItems.innerHTML = '<tr><td colspan="6" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando inventario...</td></tr>';
+        safeSetInnerHTML('stock-items', '<tr><td colspan="6" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando inventario...</td></tr>');
         
         const { data, error } = await executeQuery('select', 'entrada');
         
@@ -1070,7 +1179,9 @@
     }
 
     function displayStock(stock) {
-      const stockItems = document.getElementById('stock-items');
+      const stockItems = safeGetElement('stock-items');
+      if (!stockItems) return;
+      
       stockItems.innerHTML = '';
       
       if (stock.length === 0) {
@@ -1109,15 +1220,15 @@
     }
 
     function updateStockPagination(showing, total) {
-      document.getElementById('items-showing').textContent = showing;
-      document.getElementById('items-total').textContent = total;
+      safeSetTextContent('items-showing', showing);
+      safeSetTextContent('items-total', total);
     }
 
     function applyStockFilters() {
       const filters = {
-        "Número de Parte": document.getElementById('filtro-parte').value,
-        "Descripción del accesorio": document.getElementById('filtro-descripcion').value,
-        "Ubicación": document.getElementById('filtro-ubicacion').value
+        "Número de Parte": safeGetElement('filtro-parte')?.value || '',
+        "Descripción del accesorio": safeGetElement('filtro-descripcion')?.value || '',
+        "Ubicación": safeGetElement('filtro-ubicacion')?.value || ''
       };
       
       const filteredStock = currentStock.filter(item => {
@@ -1132,9 +1243,9 @@
     }
 
     function clearStockFilters() {
-      document.getElementById('filtro-parte').value = '';
-      document.getElementById('filtro-descripcion').value = '';
-      document.getElementById('filtro-ubicacion').value = '';
+      safeSetValue('filtro-parte', '');
+      safeSetValue('filtro-descripcion', '');
+      safeSetValue('filtro-ubicacion', '');
       displayStock(currentStock);
       showToast('Filtros limpiados', 'success');
     }
@@ -1143,21 +1254,23 @@
     async function handleEntregaSubmit(e) {
       e.preventDefault();
       
-      const isEditing = document.getElementById('entrega-id').value;
-      const button = document.getElementById('registrar-salida');
-      const originalText = button.innerHTML;
+      const isEditing = safeGetElement('entrega-id')?.value;
+      const button = safeGetElement('registrar-salida');
+      const originalText = button?.innerHTML;
       
       try {
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
+        if (button) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
+        }
         
         const formData = {
-          "ID de Accesorio": document.getElementById('accesorio-id').value,
-          "Cantidad": parseInt(document.getElementById('cantidad-salida').value),
-          "Tipo de Accesorio": document.getElementById('tipo-accesorio').value,
-          "Fecha de Salida": document.getElementById('fecha-salida').value,
-          "Supervisor": document.getElementById('supervisor').value,
-          "Persona que entrega": document.getElementById('persona-entrega').value
+          "ID de Accesorio": safeGetElement('accesorio-id')?.value || '',
+          "Cantidad": parseInt(safeGetElement('cantidad-salida')?.value || 0),
+          "Tipo de Accesorio": safeGetElement('tipo-accesorio')?.value || '',
+          "Fecha de Salida": safeGetElement('fecha-salida')?.value || '',
+          "Supervisor": safeGetElement('supervisor')?.value || '',
+          "Persona que entrega": safeGetElement('persona-entrega')?.value || ''
         };
         
         if (isEditing) {
@@ -1187,19 +1300,45 @@
         console.error('Error al guardar entrega:', error);
         showToast('Error al guardar entrega: ' + error.message, 'error');
       } finally {
-        button.disabled = false;
-        button.innerHTML = originalText;
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = originalText || '<i class="fas fa-paper-plane mr-2"></i><span>Registrar Entrega</span>';
+        }
       }
     }
 
+    // ===== FUNCIÓN CORREGIDA clearEntregaForm =====
     function clearEntregaForm() {
-      document.getElementById('entrega-form').reset();
-      document.getElementById('entrega-id').value = '';
-      document.getElementById('btn-entrega-text').textContent = 'Registrar Entrega';
-      document.getElementById('cancelar-entrega').classList.add('hidden');
-      document.getElementById('stock-disponible').textContent = '';
-      setCurrentDateTime();
-      clearFormErrors();
+      try {
+        // Resetear formulario de manera segura
+        const form = safeGetElement('entrega-form');
+        if (form) {
+          form.reset();
+        }
+        
+        // Limpiar campos específicos
+        safeSetValue('entrega-id', '');
+        
+        // Resetear texto del botón
+        safeSetInnerHTML('btn-entrega-text', 'Registrar Entrega');
+        
+        // Ocultar botón de cancelar
+        safeAddClass('cancelar-entrega', 'hidden');
+        
+        // Limpiar información de stock
+        safeSetTextContent('stock-disponible', '');
+        
+        // Establecer fecha actual
+        setCurrentDateTime();
+        
+        // Limpiar errores del formulario
+        clearFormErrors();
+        
+        console.log('Formulario de entrega limpiado correctamente');
+      } catch (error) {
+        console.error('Error al limpiar formulario de entrega:', error);
+        showToast('Formulario limpiado (con advertencias menores)', 'warning');
+      }
     }
 
     function cancelEntregaEdit() {
@@ -1208,8 +1347,7 @@
 
     async function loadEntregas() {
       try {
-        const entregasItems = document.getElementById('entregas-items');
-        entregasItems.innerHTML = '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>';
+        safeSetInnerHTML('entregas-items', '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>');
         
         const { data, error } = await executeQuery('select', 'entrega');
         
@@ -1227,7 +1365,9 @@
     }
 
     function displayEntregas(entregas) {
-      const entregasItems = document.getElementById('entregas-items');
+      const entregasItems = safeGetElement('entregas-items');
+      if (!entregasItems) return;
+      
       entregasItems.innerHTML = '';
       
       if (entregas.length === 0) {
@@ -1272,12 +1412,14 @@
     }
 
     function updateEntregasPagination(showing, total) {
-      document.getElementById('entregas-showing').textContent = showing;
-      document.getElementById('entregas-total').textContent = total;
+      safeSetTextContent('entregas-showing', showing);
+      safeSetTextContent('entregas-total', total);
     }
 
     function loadAccesoriosDropdown() {
-      const dropdown = document.getElementById('accesorio-id');
+      const dropdown = safeGetElement('accesorio-id');
+      if (!dropdown) return;
+      
       dropdown.innerHTML = '<option value="">Seleccione un accesorio</option>';
       
       currentStock.forEach(item => {
@@ -1291,8 +1433,10 @@
     }
 
     function updateStockInfo() {
-      const accesorioId = document.getElementById('accesorio-id').value;
-      const stockInfo = document.getElementById('stock-disponible');
+      const accesorioId = safeGetElement('accesorio-id')?.value;
+      const stockInfo = safeGetElement('stock-disponible');
+      
+      if (!stockInfo) return;
       
       if (accesorioId) {
         const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioId);
@@ -1307,9 +1451,9 @@
 
     function applyEntregasFilters() {
       const filters = {
-        "Fecha de Salida": document.getElementById('filtro-fecha').value,
-        "Supervisor": document.getElementById('filtro-supervisor').value,
-        "Tipo de Accesorio": document.getElementById('filtro-tipo').value
+        "Fecha de Salida": safeGetElement('filtro-fecha')?.value || '',
+        "Supervisor": safeGetElement('filtro-supervisor')?.value || '',
+        "Tipo de Accesorio": safeGetElement('filtro-tipo')?.value || ''
       };
       
       const filteredEntregas = currentEntregas.filter(item => {
@@ -1330,9 +1474,9 @@
     }
 
     function clearEntregasFilters() {
-      document.getElementById('filtro-fecha').value = '';
-      document.getElementById('filtro-supervisor').value = '';
-      document.getElementById('filtro-tipo').value = '';
+      safeSetValue('filtro-fecha', '');
+      safeSetValue('filtro-supervisor', '');
+      safeSetValue('filtro-tipo', '');
       displayEntregas(currentEntregas);
       showToast('Filtros limpiados', 'success');
     }
@@ -1344,21 +1488,22 @@
       if (!entrada) return;
       
       // Llenar formulario
-      document.getElementById('entrada-id').value = entrada.id;
-      document.getElementById('numero-parte').value = entrada["Número de Parte"];
-      document.getElementById('descripcion').value = entrada["Descripción del accesorio"];
-      document.getElementById('ubicacion').value = entrada["Ubicación"];
-      document.getElementById('cantidad').value = entrada["Cantidad ingresada"];
+      safeSetValue('entrada-id', entrada.id);
+      safeSetValue('numero-parte', entrada["Número de Parte"]);
+      safeSetValue('descripcion', entrada["Descripción del accesorio"]);
+      safeSetValue('ubicacion', entrada["Ubicación"]);
+      safeSetValue('cantidad', entrada["Cantidad ingresada"]);
       
       const fecha = new Date(entrada["Fecha de Entrada"]);
-      document.getElementById('fecha-entrada').value = fecha.toISOString().slice(0, 16);
+      safeSetValue('fecha-entrada', fecha.toISOString().slice(0, 16));
       
       // Cambiar a modo edición
-      document.getElementById('btn-text').textContent = 'Actualizar Entrada';
-      document.getElementById('cancelar-entrada').classList.remove('hidden');
+      safeSetTextContent('btn-text', 'Actualizar Entrada');
+      safeRemoveClass('cancelar-entrada', 'hidden');
       
       // Cambiar a pestaña de entrada
-      document.querySelector('.tab-link[data-tab="entrada"]').click();
+      const entradaTab = document.querySelector('.tab-link[data-tab="entrada"]');
+      if (entradaTab) entradaTab.click();
       
       showToast('Editando entrada. Modifique los campos y guarde los cambios.', 'info');
     }
@@ -1393,19 +1538,19 @@
       if (!entrega) return;
       
       // Llenar formulario
-      document.getElementById('entrega-id').value = entrega.id;
-      document.getElementById('accesorio-id').value = entrega["ID de Accesorio"];
-      document.getElementById('tipo-accesorio').value = entrega["Tipo de Accesorio"];
-      document.getElementById('cantidad-salida').value = entrega["Cantidad"];
-      document.getElementById('supervisor').value = entrega["Supervisor"];
-      document.getElementById('persona-entrega').value = entrega["Persona que entrega"];
+      safeSetValue('entrega-id', entrega.id);
+      safeSetValue('accesorio-id', entrega["ID de Accesorio"]);
+      safeSetValue('tipo-accesorio', entrega["Tipo de Accesorio"]);
+      safeSetValue('cantidad-salida', entrega["Cantidad"]);
+      safeSetValue('supervisor', entrega["Supervisor"]);
+      safeSetValue('persona-entrega', entrega["Persona que entrega"]);
       
       const fecha = new Date(entrega["Fecha de Salida"]);
-      document.getElementById('fecha-salida').value = fecha.toISOString().slice(0, 16);
+      safeSetValue('fecha-salida', fecha.toISOString().slice(0, 16));
       
       // Cambiar a modo edición
-      document.getElementById('btn-entrega-text').textContent = 'Actualizar Entrega';
-      document.getElementById('cancelar-entrega').classList.remove('hidden');
+      safeSetTextContent('btn-entrega-text', 'Actualizar Entrega');
+      safeRemoveClass('cancelar-entrega', 'hidden');
       
       updateStockInfo();
       showToast('Editando entrega. Modifique los campos y guarde los cambios.', 'info');
