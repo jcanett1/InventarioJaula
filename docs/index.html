@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario</title>
+  <title>Sistema de Gestión de Inventario - Versión Completa</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -11,6 +11,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
   <style id="app-style">
     .tab-content {
       display: none;
@@ -39,23 +42,32 @@
       top: 20px;
       right: 20px;
       padding: 15px 20px;
-      border-radius: 4px;
+      border-radius: 8px;
       z-index: 1000;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       transition: all 0.3s ease;
       opacity: 0;
       transform: translateY(-20px);
+      max-width: 400px;
     }
     .toast.show {
       opacity: 1;
       transform: translateY(0);
     }
     .toast-success {
-      background-color: #48bb78;
+      background-color: #10b981;
       color: white;
     }
     .toast-error {
-      background-color: #f56565;
+      background-color: #ef4444;
+      color: white;
+    }
+    .toast-warning {
+      background-color: #f59e0b;
+      color: white;
+    }
+    .toast-info {
+      background-color: #3b82f6;
       color: white;
     }
     .table-container {
@@ -65,11 +77,86 @@
       max-width: 100px;
       max-height: 100px;
       object-fit: contain;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .image-preview:hover {
+      transform: scale(1.05);
     }
     .thumbnail {
-      width: 50px;
-      height: 50px;
+      width: 60px;
+      height: 60px;
       object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .thumbnail:hover {
+      transform: scale(1.1);
+    }
+    .image-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      cursor: pointer;
+    }
+    .image-modal img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      border-radius: 8px;
+    }
+    .connection-indicator {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+    .connection-success {
+      background-color: #dcfce7;
+      color: #166534;
+    }
+    .connection-error {
+      background-color: #fef2f2;
+      color: #dc2626;
+    }
+    .connection-loading {
+      background-color: #fef3c7;
+      color: #d97706;
+    }
+    .form-error {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2;
+    }
+    .error-message {
+      color: #ef4444;
+      font-size: 0.875rem;
+      margin-top: 4px;
+    }
+    .image-upload-area {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      transition: border-color 0.2s;
+      cursor: pointer;
+    }
+    .image-upload-area:hover {
+      border-color: #3b82f6;
+    }
+    .image-upload-area.dragover {
+      border-color: #3b82f6;
+      background-color: #eff6ff;
     }
     @media (max-width: 640px) {
       .responsive-table {
@@ -77,14 +164,29 @@
         width: 100%;
         overflow-x: auto;
       }
+      .toast {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
     }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-50 min-h-screen">
   <div class="container mx-auto px-4 py-6">
     <header class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-      <p class="text-gray-600">Control de accesorios y entregas</p>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
+          <p class="text-gray-600">Control completo de accesorios y entregas</p>
+        </div>
+        <div class="mt-4 md:mt-0">
+          <div id="connection-status" class="connection-indicator connection-loading">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            <span>Conectando a Supabase...</span>
+          </div>
+        </div>
+      </div>
     </header>
 
     <!-- Tabs Navigation -->
@@ -102,7 +204,7 @@
         </li>
         <li>
           <a href="javascript:void(0)" class="tab-link inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-tab="entrega">
-            <i class="fas fa-handshake mr-2"></i>Entrega de Accesorios
+            <i class="fas fa-handshake mr-2"></i>Entregas
           </a>
         </li>
       </ul>
@@ -113,45 +215,80 @@
       <!-- Entrada de Inventario -->
       <div id="entrada-tab" class="tab-content active">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold mb-6">Registro de Entrada de Inventario</h2>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">Registro de Entrada de Inventario</h2>
+            <button id="limpiar-formulario-entrada" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+              <i class="fas fa-broom mr-2"></i>Limpiar
+            </button>
+          </div>
           
           <form id="entrada-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <input type="hidden" id="entrada-id">
+            
             <div class="form-group">
-              <label for="numero-parte" class="block text-sm font-medium text-gray-700 mb-1">Número de Parte *</label>
-              <input type="text" id="numero-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <label for="numero-parte" class="block text-sm font-medium text-gray-700 mb-1">
+                Número de Parte *
+              </label>
+              <input type="text" id="numero-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: ACC-001">
+              <div id="numero-parte-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="fecha-entrada" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Entrada *</label>
-              <input type="date" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <label for="fecha-entrada" class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Entrada *
+              </label>
+              <input type="datetime-local" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <div id="fecha-entrada-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group md:col-span-2">
-              <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción del accesorio *</label>
-              <textarea id="descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" required></textarea>
+              <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
+                Descripción del accesorio *
+              </label>
+              <textarea id="descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" required placeholder="Descripción detallada del accesorio"></textarea>
+              <div id="descripcion-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="ubicacion" class="block text-sm font-medium text-gray-700 mb-1">Ubicación (jaula) *</label>
-              <select id="ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="Jaula">Jaula</option>
-              </select>
+              <label for="ubicacion" class="block text-sm font-medium text-gray-700 mb-1">
+                Ubicación *
+              </label>
+              <input type="text" id="ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: Jaula A-1">
+              <div id="ubicacion-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad ingresada *</label>
+              <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">
+                Cantidad ingresada *
+              </label>
               <input type="number" id="cantidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <div id="cantidad-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group md:col-span-2">
-              <label for="imagenes" class="block text-sm font-medium text-gray-700 mb-1">Imágenes</label>
-              <input type="file" id="imagenes" multiple accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Imágenes del accesorio
+              </label>
+              <div class="image-upload-area" id="image-upload-area">
+                <input type="file" id="imagenes" multiple accept="image/*" class="hidden">
+                <div class="upload-content">
+                  <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                  <p class="text-gray-600">Haz clic aquí o arrastra imágenes</p>
+                  <p class="text-sm text-gray-400">PNG, JPG, GIF hasta 5MB cada una</p>
+                </div>
+              </div>
               <div id="image-preview-container" class="mt-3 flex flex-wrap gap-2"></div>
+              <div id="existing-images-container" class="mt-3 flex flex-wrap gap-2"></div>
+              <div id="imagenes-error" class="error-message hidden"></div>
             </div>
             
-            <div class="md:col-span-2 mt-2">
-              <button type="submit" id="guardar-entrada" class="w-full md:w-auto px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
-                <i class="fas fa-save mr-2"></i> Guardar
+            <div class="md:col-span-2 mt-4 flex gap-3">
+              <button type="submit" id="guardar-entrada" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                <i class="fas fa-save mr-2"></i>
+                <span id="btn-text">Guardar Entrada</span>
+              </button>
+              <button type="button" id="cancelar-entrada" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors hidden">
+                <i class="fas fa-times mr-2"></i>Cancelar
               </button>
             </div>
           </form>
@@ -161,75 +298,89 @@
       <!-- Stock -->
       <div id="stock-tab" class="tab-content">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold mb-6">Gestión de Stock</h2>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">Gestión de Stock</h2>
+            <button id="actualizar-stock" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              <i class="fas fa-sync-alt mr-2"></i>Actualizar
+            </button>
+          </div>
           
+          <!-- Filtros -->
           <div class="mb-6 bg-gray-50 p-4 rounded-md">
+            <h3 class="text-sm font-medium text-gray-700 mb-3">Filtros de búsqueda</h3>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div class="form-group">
-                <label for="filtro-parte" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Número de Parte</label>
-                <input type="text" id="filtro-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="filtro-parte" class="block text-sm font-medium text-gray-700 mb-1">Número de Parte</label>
+                <input type="text" id="filtro-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Buscar...">
               </div>
               
               <div class="form-group">
-                <label for="filtro-descripcion" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Descripción</label>
-                <input type="text" id="filtro-descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="filtro-descripcion" class="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
+                <input type="text" id="filtro-descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Buscar...">
               </div>
               
               <div class="form-group">
-                <label for="filtro-ubicacion" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Ubicación</label>
-                <input type="text" id="filtro-ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="filtro-ubicacion" class="block text-sm font-medium text-gray-700 mb-1">Ubicación</label>
+                <input type="text" id="filtro-ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Buscar...">
               </div>
               
               <div class="form-group flex items-end">
                 <button id="aplicar-filtros" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors mr-2">
-                  <i class="fas fa-filter mr-1"></i> Filtrar
+                  <i class="fas fa-filter mr-1"></i>Filtrar
                 </button>
                 <button id="limpiar-filtros" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors">
-                  <i class="fas fa-broom mr-1"></i> Limpiar
+                  <i class="fas fa-broom mr-1"></i>Limpiar
                 </button>
               </div>
             </div>
           </div>
           
+          <!-- Botones de exportación -->
           <div class="flex justify-end mb-4 gap-2">
             <button id="exportar-excel" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
-              <i class="fas fa-file-excel mr-1"></i> Exportar a Excel
+              <i class="fas fa-file-excel mr-1"></i>Excel
             </button>
             <button id="exportar-pdf" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors">
-              <i class="fas fa-file-pdf mr-1"></i> Exportar a PDF
+              <i class="fas fa-file-pdf mr-1"></i>PDF
             </button>
           </div>
           
+          <!-- Tabla de stock -->
           <div class="table-container responsive-table">
-            <table id="stock-table" class="min-w-full bg-white border border-gray-200">
+            <table id="stock-table" class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="py-2 px-4 border-b text-left">Número de Parte</th>
-                  <th class="py-2 px-4 border-b text-left">Descripción</th>
-                  <th class="py-2 px-4 border-b text-left">Ubicación</th>
-                  <th class="py-2 px-4 border-b text-right">Cantidad Disponible</th>
-                  <th class="py-2 px-4 border-b text-center">Imagen</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Número de Parte</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Descripción</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Ubicación</th>
+                  <th class="py-3 px-4 border-b text-right font-medium text-gray-700">Cantidad</th>
+                  <th class="py-3 px-4 border-b text-center font-medium text-gray-700">Imagen</th>
+                  <th class="py-3 px-4 border-b text-center font-medium text-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody id="stock-items">
-                <!-- Se llenará dinámicamente -->
-                <tr class="hover:bg-gray-50">
-                  <td colspan="5" class="py-4 px-4 text-center text-gray-500">Cargando inventario...</td>
+                <tr>
+                  <td colspan="6" class="py-8 px-4 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>Cargando inventario...
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
           
-          <div class="mt-4 flex justify-between items-center">
+          <!-- Paginación -->
+          <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="text-sm text-gray-500">
               Mostrando <span id="items-showing">0</span> de <span id="items-total">0</span> elementos
             </div>
             <div class="flex space-x-2">
-              <button id="prev-page" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button id="prev-page" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-chevron-left"></i>
               </button>
-              <span id="page-info" class="px-3 py-1">Página <span id="current-page">1</span> de <span id="total-pages">1</span></span>
-              <button id="next-page" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span id="page-info" class="px-4 py-2 text-sm">
+                Página <span id="current-page">1</span> de <span id="total-pages">1</span>
+              </span>
+              <button id="next-page" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-chevron-right"></i>
               </button>
             </div>
@@ -237,22 +388,33 @@
         </div>
       </div>
 
-      <!-- Entrega de Accesorios -->
+      <!-- Entregas -->
       <div id="entrega-tab" class="tab-content">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <h2 class="text-xl font-semibold mb-6">Registro de Entrega de Accesorios</h2>
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold">Registro de Entregas</h2>
+            <button id="limpiar-formulario-entrega" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+              <i class="fas fa-broom mr-2"></i>Limpiar
+            </button>
+          </div>
           
-          <form id="entrega-form" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <form id="entrega-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <input type="hidden" id="entrega-id">
+            
             <div class="form-group">
-              <label for="accesorio-id" class="block text-sm font-medium text-gray-700 mb-1">ID de Accesorio *</label>
+              <label for="accesorio-id" class="block text-sm font-medium text-gray-700 mb-1">
+                Accesorio *
+              </label>
               <select id="accesorio-id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione un accesorio</option>
-                <!-- Se llenará dinámicamente -->
               </select>
+              <div id="accesorio-id-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="tipo-accesorio" class="block text-sm font-medium text-gray-700 mb-1">Tipo de Accesorio *</label>
+              <label for="tipo-accesorio" class="block text-sm font-medium text-gray-700 mb-1">
+                Tipo de Accesorio *
+              </label>
               <select id="tipo-accesorio" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione un tipo</option>
                 <option value="bolsa">Bolsa</option>
@@ -262,26 +424,22 @@
                 <option value="accesorio-pequeno">Accesorio pequeño</option>
                 <option value="kit">Kit</option>
               </select>
+              <div id="tipo-accesorio-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="cantidad-salida" class="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+              <label for="cantidad-salida" class="block text-sm font-medium text-gray-700 mb-1">
+                Cantidad *
+              </label>
               <input type="number" id="cantidad-salida" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <div id="stock-disponible" class="text-sm text-gray-500 mt-1"></div>
+              <div id="cantidad-salida-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="celda-destino" class="block text-sm font-medium text-gray-700 mb-1">Celda de destino *</label>
-              <select id="celda-destino" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Seleccione una celda</option>
-                <option value="Celda 10">Celda 10</option>
-                <option value="Celda 11">Celda 11</option>
-                <option value="Celda 15">Celda 15</option>
-                <option value="Celda 16">Celda 16</option>
-              </select>
-            </div>
-            
-            <div class="form-group">
-              <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-1">Supervisor *</label>
+              <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-1">
+                Supervisor *
+              </label>
               <select id="supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione un supervisor</option>
                 <option value="Juan Pérez">Juan Pérez</option>
@@ -289,44 +447,57 @@
                 <option value="Carlos López">Carlos López</option>
                 <option value="Ana Rodríguez">Ana Rodríguez</option>
               </select>
+              <div id="supervisor-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="persona-entrega" class="block text-sm font-medium text-gray-700 mb-1">Persona que entrega *</label>
+              <label for="persona-entrega" class="block text-sm font-medium text-gray-700 mb-1">
+                Persona que entrega *
+              </label>
               <select id="persona-entrega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione una persona</option>
                 <option value="Yodeli">Yodeli</option>
                 <option value="Denise">Denise</option>
               </select>
+              <div id="persona-entrega-error" class="error-message hidden"></div>
             </div>
             
             <div class="form-group">
-              <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">Fecha de Salida *</label>
-              <input type="date" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Salida *
+              </label>
+              <input type="datetime-local" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <div id="fecha-salida-error" class="error-message hidden"></div>
             </div>
             
-            <div class="md:col-span-3">
-              <button type="submit" id="registrar-salida" class="w-full md:w-auto px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
-                <i class="fas fa-paper-plane mr-2"></i> Registrar Salida
+            <div class="md:col-span-3 flex gap-3">
+              <button type="submit" id="registrar-salida" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
+                <i class="fas fa-paper-plane mr-2"></i>
+                <span id="btn-entrega-text">Registrar Entrega</span>
+              </button>
+              <button type="button" id="cancelar-entrega" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors hidden">
+                <i class="fas fa-times mr-2"></i>Cancelar
               </button>
             </div>
           </form>
           
           <hr class="my-8">
           
-          <h3 class="text-lg font-semibold mb-4">Historial de Salidas</h3>
+          <h3 class="text-lg font-semibold mb-4">Historial de Entregas</h3>
           
+          <!-- Filtros de entregas -->
           <div class="mb-6 bg-gray-50 p-4 rounded-md">
+            <h4 class="text-sm font-medium text-gray-700 mb-3">Filtros de búsqueda</h4>
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div class="form-group">
-                <label for="filtro-fecha" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Fecha</label>
+                <label for="filtro-fecha" class="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
                 <input type="date" id="filtro-fecha" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
               </div>
               
               <div class="form-group">
-                <label for="filtro-supervisor" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Supervisor</label>
+                <label for="filtro-supervisor" class="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
                 <select id="filtro-supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Todos los supervisores</option>
+                  <option value="">Todos</option>
                   <option value="Juan Pérez">Juan Pérez</option>
                   <option value="María García">María García</option>
                   <option value="Carlos López">Carlos López</option>
@@ -335,62 +506,77 @@
               </div>
               
               <div class="form-group">
-                <label for="filtro-celda" class="block text-sm font-medium text-gray-700 mb-1">Filtrar por Celda</label>
-                <input type="text" id="filtro-celda" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="filtro-tipo" class="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
+                <select id="filtro-tipo" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="">Todos</option>
+                  <option value="bolsa">Bolsa</option>
+                  <option value="gorra">Gorra</option>
+                  <option value="guantes">Guantes</option>
+                  <option value="pelota">Pelota</option>
+                  <option value="accesorio-pequeno">Accesorio pequeño</option>
+                  <option value="kit">Kit</option>
+                </select>
               </div>
               
               <div class="form-group flex items-end">
-                <button id="aplicar-filtros-salidas" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors mr-2">
-                  <i class="fas fa-filter mr-1"></i> Filtrar
+                <button id="aplicar-filtros-entregas" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors mr-2">
+                  <i class="fas fa-filter mr-1"></i>Filtrar
                 </button>
-                <button id="limpiar-filtros-salidas" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors">
-                  <i class="fas fa-broom mr-1"></i> Limpiar
+                <button id="limpiar-filtros-entregas" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors">
+                  <i class="fas fa-broom mr-1"></i>Limpiar
                 </button>
               </div>
             </div>
           </div>
           
+          <!-- Botones de exportación -->
           <div class="flex justify-end mb-4 gap-2">
-            <button id="exportar-excel-salidas" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
-              <i class="fas fa-file-excel mr-1"></i> Exportar a Excel
+            <button id="exportar-excel-entregas" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
+              <i class="fas fa-file-excel mr-1"></i>Excel
             </button>
-            <button id="exportar-pdf-salidas" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors">
-              <i class="fas fa-file-pdf mr-1"></i> Exportar a PDF
+            <button id="exportar-pdf-entregas" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors">
+              <i class="fas fa-file-pdf mr-1"></i>PDF
             </button>
           </div>
           
+          <!-- Tabla de entregas -->
           <div class="table-container responsive-table">
-            <table id="salidas-table" class="min-w-full bg-white border border-gray-200">
+            <table id="entregas-table" class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="py-2 px-4 border-b text-left">ID de Salida</th>
-                  <th class="py-2 px-4 border-b text-left">ID de Accesorio</th>
-                  <th class="py-2 px-4 border-b text-right">Cantidad</th>
-                  <th class="py-2 px-4 border-b text-left">Fecha de Salida</th>
-                  <th class="py-2 px-4 border-b text-left">Supervisor</th>
-                  <th class="py-2 px-4 border-b text-left">Persona</th>
-                  <th class="py-2 px-4 border-b text-center">Acciones</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">ID</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Accesorio</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Tipo</th>
+                  <th class="py-3 px-4 border-b text-right font-medium text-gray-700">Cantidad</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Fecha</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Supervisor</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Persona</th>
+                  <th class="py-3 px-4 border-b text-center font-medium text-gray-700">Acciones</th>
                 </tr>
               </thead>
-              <tbody id="salidas-items">
-                <!-- Se llenará dinámicamente -->
-                <tr class="hover:bg-gray-50">
-                  <td colspan="7" class="py-4 px-4 text-center text-gray-500">Cargando salidas...</td>
+              <tbody id="entregas-items">
+                <tr>
+                  <td colspan="8" class="py-8 px-4 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
           
-          <div class="mt-4 flex justify-between items-center">
+          <!-- Paginación entregas -->
+          <div class="mt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="text-sm text-gray-500">
-              Mostrando <span id="salidas-showing">0</span> de <span id="salidas-total">0</span> elementos
+              Mostrando <span id="entregas-showing">0</span> de <span id="entregas-total">0</span> elementos
             </div>
             <div class="flex space-x-2">
-              <button id="prev-page-salidas" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button id="prev-page-entregas" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-chevron-left"></i>
               </button>
-              <span id="page-info-salidas" class="px-3 py-1">Página <span id="current-page-salidas">1</span> de <span id="total-pages-salidas">1</span></span>
-              <button id="next-page-salidas" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span id="page-info-entregas" class="px-4 py-2 text-sm">
+                Página <span id="current-page-entregas">1</span> de <span id="total-pages-entregas">1</span>
+              </span>
+              <button id="next-page-entregas" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
                 <i class="fas fa-chevron-right"></i>
               </button>
             </div>
@@ -400,671 +586,1001 @@
     </div>
   </div>
 
-  <!-- Toast notifications -->
-  <div id="toast" class="toast">
-    <span id="toast-message"></span>
+  <!-- Modal para ver imagen completa -->
+  <div id="image-modal" class="image-modal hidden" onclick="closeImageModal()">
+    <img id="modal-image" src="" alt="Imagen completa">
   </div>
 
-  <!-- Modal para editar salida -->
-  <div id="modal-editar" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center hidden">
-    <div class="bg-white rounded-lg p-6 w-full max-w-md">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-semibold">Editar Salida</h3>
-        <button id="cerrar-modal" class="text-gray-500 hover:text-gray-700 focus:outline-none">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <form id="editar-salida-form" class="space-y-4">
-        <input type="hidden" id="editar-id">
-        <div class="form-group">
-          <label for="editar-cantidad" class="block text-sm font-medium text-gray-700 mb-1">Cantidad</label>
-          <input type="number" id="editar-cantidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="editar-supervisor" class="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
-          <select id="editar-supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-            <option value="Juan Pérez">Juan Pérez</option>
-            <option value="María García">María García</option>
-            <option value="Carlos López">Carlos López</option>
-            <option value="Ana Rodríguez">Ana Rodríguez</option>
-          </select>
-        </div>
-        
-        <div class="form-group">
-          <label for="editar-persona" class="block text-sm font-medium text-gray-700 mb-1">Persona que entrega</label>
-          <input type="text" id="editar-persona" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-        </div>
-        
-        <div class="flex justify-end space-x-3 mt-4">
-          <button type="button" id="cancelar-edicion" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
-            Cancelar
-          </button>
-          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-            Guardar cambios
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <script id="app-script">
-    // Archivo de conexión a Supabase
-    const supabaseConfig = {
-      url: 'https://lwdapqzcrezgfkhgftac.supabase.co',
-      anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZGFwcXpjcmV6Z2ZmaGdmdGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MTg0MzYsImV4cCI6MjA2NzQ5NDQzNn0.7X8mYgIVUTvaQXS5UE2gdlogolPQQmcOqzgaVemCI7k',
-      initSupabase: function() {
-        console.log('Inicializando conexión con Supabase...');
-        // Aquí se inicializaría la conexión real con Supabase
-        return {
-          from: function(table) {
-            return {
-              select: function() {
-                return this;
-              },
-              insert: function(data) {
-                return {
-                  then: function(callback) {
-                    setTimeout(() => {
-                      callback({ data: [{ id: Date.now(), ...data }], error: null });
-                    }, 500);
-                  }
-                };
-              },
-              update: function(data) {
-                return {
-                  eq: function(field, value) {
-                    return {
-                      then: function(callback) {
-                        setTimeout(() => {
-                          callback({ data: [{ id: value, ...data }], error: null });
-                        }, 500);
-                      }
-                    };
-                  }
-                };
-              },
-              delete: function() {
-                return {
-                  eq: function(field, value) {
-                    return {
-                      then: function(callback) {
-                        setTimeout(() => {
-                          callback({ data: [], error: null });
-                        }, 500);
-                      }
-                    };
-                  }
-                };
-              }
-            };
-          },
-          storage: {
-            from: function(bucket) {
-              return {
-                upload: function(path, file) {
-                  return new Promise((resolve) => {
-                    setTimeout(() => {
-                      resolve({ data: { path: path }, error: null });
-                    }, 1000);
-                  });
-                }
-              };
-            }
-          }
-        };
+  <!-- Configuración y Scripts -->
+  <script>
+    // ===== CONFIGURACIÓN =====
+    const CONFIG = {
+      supabase: {
+        url: 'https://lwdapqzcrezgfkhgftac.supabase.co',
+        anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx3ZGFwcXpjcmV6Z2ZraGdmdGFjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE5MTg0MzYsImV4cCI6MjA2NzQ5NDQzNn0.7X8mYgIVUTvaQXS5UE2gdlogolPQQmcOqzgaVemCI7k',
+        storage: {
+          bucketName: 'imagenes',
+          folder: 'accesorios'
+        }
+      },
+      app: {
+        itemsPerPage: 10,
+        maxImageSize: 5 * 1024 * 1024, // 5MB
+        allowedImageTypes: ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
       }
     };
 
-    // Mock data para el prototipo
+    // ===== VARIABLES GLOBALES =====
+    let supabase;
+    let isConnected = false;
+    let currentStock = [];
+    let currentEntregas = [];
+    let currentPage = 1;
+    let currentPageEntregas = 1;
+
+    // Datos mock para modo demo
     const mockData = {
-      inventory: [
-        { id: 1, numero_parte: 'ACC-001', descripcion: 'Bolsa deportiva grande', ubicacion: 'Jaula A-1', cantidad: 25, imagen: 'https://cdn.pixabay.com/photo/2017/08/02/01/34/pocket-2569181_960_720.jpg' },
-        { id: 2, numero_parte: 'ACC-002', descripcion: 'Gorra ajustable', ubicacion: 'Jaula B-3', cantidad: 50, imagen: 'https://cdn.pixabay.com/photo/2016/11/19/15/43/baseball-cap-1839731_960_720.jpg' },
-        { id: 3, numero_parte: 'ACC-003', descripcion: 'Guantes deportivos talla M', ubicacion: 'Jaula A-2', cantidad: 30, imagen: 'https://cdn.pixabay.com/photo/2017/08/06/00/27/gym-2587064_960_720.jpg' },
-        { id: 4, numero_parte: 'ACC-004', descripcion: 'Pelota de fútbol', ubicacion: 'Jaula C-1', cantidad: 15, imagen: 'https://cdn.pixabay.com/photo/2014/05/03/00/46/soccer-ball-336772_960_720.jpg' },
-        { id: 5, numero_parte: 'ACC-005', descripcion: 'Kit de entrenamiento básico', ubicacion: 'Jaula D-2', cantidad: 10, imagen: 'https://cdn.pixabay.com/photo/2017/07/02/19/24/dumbbells-2465478_960_720.jpg' }
+      entrada: [
+        {
+          id: 1,
+          "Número de Parte": "ACC-001",
+          "Descripción del accesorio": "Bolsa deportiva grande",
+          "Ubicación": "Jaula A-1",
+          "Cantidad ingresada": 25,
+          "Imágenes": false,
+          "Fecha de Entrada": "2024-01-15T10:30:00"
+        },
+        {
+          id: 2,
+          "Número de Parte": "ACC-002",
+          "Descripción del accesorio": "Gorra ajustable",
+          "Ubicación": "Jaula B-3",
+          "Cantidad ingresada": 50,
+          "Imágenes": false,
+          "Fecha de Entrada": "2024-01-16T14:20:00"
+        }
       ],
-      salidas: [
-        { id: 1, accesorio_id: 1, tipo_accesorio: 'bolsa', cantidad: 5, celda_destino: 'Celda-123', supervisor: 'Juan Pérez', persona: 'María López', fecha_salida: '2025-03-15' },
-        { id: 2, accesorio_id: 2, tipo_accesorio: 'gorra', cantidad: 10, celda_destino: 'Celda-456', supervisor: 'María García', persona: 'Pedro Sánchez', fecha_salida: '2025-03-16' },
-        { id: 3, accesorio_id: 3, tipo_accesorio: 'guantes', cantidad: 8, celda_destino: 'Celda-789', supervisor: 'Carlos López', persona: 'Ana Torres', fecha_salida: '2025-03-17' }
+      entrega: [
+        {
+          id: 1,
+          "ID de Accesorio": "ACC-001",
+          "Cantidad": 5,
+          "Tipo de Accesorio": "bolsa",
+          "Fecha de Salida": "2024-01-20T09:15:00",
+          "Supervisor": "Juan Pérez",
+          "Persona que entrega": "Yodeli"
+        }
       ]
     };
 
-    // Inicializar la conexión a Supabase
-    const supabase = supabaseConfig.initSupabase();
-
+    // ===== INICIALIZACIÓN =====
     document.addEventListener('DOMContentLoaded', function() {
-      // Configuración de la fecha actual para los campos de fecha
-      const today = new Date().toISOString().substr(0, 10);
-      document.getElementById('fecha-entrada').value = today;
-      document.getElementById('fecha-salida').value = today;
+      initSupabase();
+      setupEventListeners();
+      setupImageUpload();
+      setCurrentDateTime();
+      loadInitialData();
+    });
+
+    function initSupabase() {
+      try {
+        if (CONFIG.supabase.url === 'TU_SUPABASE_URL_AQUI' || CONFIG.supabase.anonKey === 'TU_SUPABASE_ANON_KEY_AQUI') {
+          throw new Error('Credenciales no configuradas');
+        }
+        
+        supabase = window.supabase.createClient(CONFIG.supabase.url, CONFIG.supabase.anonKey);
+        isConnected = true;
+        updateConnectionStatus('success', 'Conectado a Supabase');
+      } catch (error) {
+        console.warn('Modo demo activo:', error.message);
+        isConnected = false;
+        updateConnectionStatus('error', 'Modo demo - Configura Supabase para usar la base de datos');
+      }
+    }
+
+    function updateConnectionStatus(type, message) {
+      const statusElement = document.getElementById('connection-status');
+      statusElement.className = `connection-indicator connection-${type}`;
       
-      // Manejo de pestañas
-      const tabLinks = document.querySelectorAll('.tab-link');
-      const tabContents = document.querySelectorAll('.tab-content');
+      const icon = type === 'success' ? 'fa-check-circle' : 
+                   type === 'error' ? 'fa-exclamation-triangle' : 
+                   'fa-spinner fa-spin';
       
-      tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          const tabId = this.getAttribute('data-tab');
-          
-          // Actualizar clases activas
-          tabLinks.forEach(el => el.classList.remove('active', 'text-blue-600', 'border-blue-600'));
-          tabContents.forEach(el => el.classList.remove('active'));
-          
-          this.classList.add('active', 'text-blue-600', 'border-blue-600');
-          document.getElementById(`${tabId}-tab`).classList.add('active');
-          
-          // Guardar pestaña activa en localStorage
-          localStorage.setItem('activeTab', tabId);
-          
-          // Cargar datos según la pestaña
-          if (tabId === 'stock') {
-            loadInventory();
-          } else if (tabId === 'entrega') {
-            loadAccesorios();
-            loadSalidas();
-          }
-        });
+      statusElement.innerHTML = `<i class="fas ${icon} mr-2"></i><span>${message}</span>`;
+    }
+
+    function setCurrentDateTime() {
+      const now = new Date();
+      const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      document.getElementById('fecha-entrada').value = localDateTime;
+      document.getElementById('fecha-salida').value = localDateTime;
+    }
+
+    // ===== MANEJO DE EVENTOS =====
+    function setupEventListeners() {
+      // Pestañas
+      document.querySelectorAll('.tab-link').forEach(link => {
+        link.addEventListener('click', handleTabClick);
+      });
+
+      // Formularios
+      document.getElementById('entrada-form').addEventListener('submit', handleEntradaSubmit);
+      document.getElementById('entrega-form').addEventListener('submit', handleEntregaSubmit);
+
+      // Botones de limpiar
+      document.getElementById('limpiar-formulario-entrada').addEventListener('click', clearEntradaForm);
+      document.getElementById('limpiar-formulario-entrega').addEventListener('click', clearEntregaForm);
+
+      // Botones de cancelar
+      document.getElementById('cancelar-entrada').addEventListener('click', cancelEntradaEdit);
+      document.getElementById('cancelar-entrega').addEventListener('click', cancelEntregaEdit);
+
+      // Filtros
+      document.getElementById('aplicar-filtros').addEventListener('click', applyStockFilters);
+      document.getElementById('limpiar-filtros').addEventListener('click', clearStockFilters);
+      document.getElementById('aplicar-filtros-entregas').addEventListener('click', applyEntregasFilters);
+      document.getElementById('limpiar-filtros-entregas').addEventListener('click', clearEntregasFilters);
+
+      // Exportación
+      document.getElementById('exportar-excel').addEventListener('click', () => exportStock('excel'));
+      document.getElementById('exportar-pdf').addEventListener('click', () => exportStock('pdf'));
+      document.getElementById('exportar-excel-entregas').addEventListener('click', () => exportEntregas('excel'));
+      document.getElementById('exportar-pdf-entregas').addEventListener('click', () => exportEntregas('pdf'));
+
+      // Actualizar
+      document.getElementById('actualizar-stock').addEventListener('click', loadStock);
+
+      // Selector de accesorio en entregas
+      document.getElementById('accesorio-id').addEventListener('change', updateStockInfo);
+    }
+
+    function handleTabClick(e) {
+      e.preventDefault();
+      const tabId = this.getAttribute('data-tab');
+      
+      // Actualizar clases activas
+      document.querySelectorAll('.tab-link').forEach(el => {
+        el.classList.remove('active', 'text-blue-600', 'border-blue-600');
+      });
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.remove('active');
       });
       
-      // Cargar pestaña guardada o por defecto
-      const savedTab = localStorage.getItem('activeTab');
-      if (savedTab) {
-        document.querySelector(`.tab-link[data-tab="${savedTab}"]`).click();
-      }
+      this.classList.add('active', 'text-blue-600', 'border-blue-600');
+      document.getElementById(`${tabId}-tab`).classList.add('active');
       
-      // Vista previa de imágenes
-      const imageInput = document.getElementById('imagenes');
+      // Cargar datos según la pestaña
+      if (tabId === 'stock') {
+        loadStock();
+      } else if (tabId === 'entrega') {
+        loadAccesoriosDropdown();
+        loadEntregas();
+      }
+    }
+
+    // ===== MANEJO DE IMÁGENES =====
+    function setupImageUpload() {
+      const uploadArea = document.getElementById('image-upload-area');
+      const fileInput = document.getElementById('imagenes');
+      
+      uploadArea.addEventListener('click', () => fileInput.click());
+      uploadArea.addEventListener('dragover', handleDragOver);
+      uploadArea.addEventListener('drop', handleDrop);
+      fileInput.addEventListener('change', handleFileSelect);
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+
+    function handleDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      
+      const files = e.dataTransfer.files;
+      document.getElementById('imagenes').files = files;
+      handleFileSelect({ target: { files } });
+    }
+
+    function handleFileSelect(e) {
+      const files = e.target.files;
       const previewContainer = document.getElementById('image-preview-container');
       
-      imageInput.addEventListener('change', function() {
-        previewContainer.innerHTML = '';
+      previewContainer.innerHTML = '';
+      
+      if (files.length === 0) return;
+      
+      // Validar archivos
+      const validation = validateImages(files);
+      if (!validation.isValid) {
+        showToast(validation.errors.join(', '), 'error');
+        return;
+      }
+      
+      // Mostrar vista previa
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const div = document.createElement('div');
+          div.className = 'relative';
+          div.innerHTML = `
+            <img src="${e.target.result}" class="image-preview" onclick="showImageModal('${e.target.result}')">
+            <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600" onclick="removeImagePreview(this)">
+              <i class="fas fa-times"></i>
+            </button>
+          `;
+          previewContainer.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function validateImages(files) {
+      const errors = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
         
-        if (this.files) {
-          Array.from(this.files).forEach(file => {
-            if (!file.type.match('image.*')) {
-              return;
+        if (!CONFIG.app.allowedImageTypes.includes(file.type)) {
+          errors.push(`${file.name}: Tipo no válido`);
+        }
+        
+        if (file.size > CONFIG.app.maxImageSize) {
+          errors.push(`${file.name}: Muy grande (máx. 5MB)`);
+        }
+      }
+      
+      return {
+        isValid: errors.length === 0,
+        errors: errors
+      };
+    }
+
+    function removeImagePreview(button) {
+      button.parentElement.remove();
+      // Limpiar el input de archivos
+      document.getElementById('imagenes').value = '';
+    }
+
+    function showImageModal(src) {
+      const modal = document.getElementById('image-modal');
+      const modalImage = document.getElementById('modal-image');
+      modalImage.src = src;
+      modal.classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.add('hidden');
+    }
+
+    // ===== FUNCIONES DE BASE DE DATOS =====
+    async function executeQuery(operation, table, data = null, filters = null) {
+      if (!isConnected) {
+        return executeMockQuery(operation, table, data, filters);
+      }
+
+      try {
+        let query = supabase.from(table);
+        
+        switch (operation) {
+          case 'select':
+            if (filters) {
+              Object.keys(filters).forEach(key => {
+                if (filters[key]) {
+                  query = query.ilike(key, `%${filters[key]}%`);
+                }
+              });
             }
+            return await query.select('*').order('id', { ascending: false });
             
-            const reader = new FileReader();
-            reader.onload = function(e) {
-              const img = document.createElement('img');
-              img.src = e.target.result;
-              img.classList.add('image-preview');
-              previewContainer.appendChild(img);
-            };
-            reader.readAsDataURL(file);
-          });
+          case 'insert':
+            return await query.insert(data).select();
+            
+          case 'update':
+            return await query.update(data).eq('id', data.id).select();
+            
+          case 'delete':
+            return await query.delete().eq('id', data.id);
+            
+          default:
+            throw new Error(`Operación no soportada: ${operation}`);
         }
-      });
-      
-      // Formulario de entrada de inventario
-      const entradaForm = document.getElementById('entrada-form');
-      entradaForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const numeroParte = document.getElementById('numero-parte').value;
-        const fechaEntrada = document.getElementById('fecha-entrada').value;
-        const descripcion = document.getElementById('descripcion').value;
-        const ubicacion = document.getElementById('ubicacion').value;
-        const cantidad = parseInt(document.getElementById('cantidad').value);
-        const imagenes = document.getElementById('imagenes').files;
-        
-        // Validación
-        if (!numeroParte || !fechaEntrada || !descripcion || !ubicacion || !cantidad) {
-          showToast('Por favor complete todos los campos obligatorios.', 'error');
-          return;
-        }
-        
-        // Simular carga
-        const saveButton = document.getElementById('guardar-entrada');
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Guardando...';
-        
-        // Subir imágenes (simulado)
-        let imagePath = null;
-        if (imagenes.length > 0) {
-          const file = imagenes[0];
-          const filePath = `inventory/${Date.now()}_${file.name}`;
+      } catch (error) {
+        console.error(`Error en ${operation} ${table}:`, error);
+        throw error;
+      }
+    }
+
+    function executeMockQuery(operation, table, data = null, filters = null) {
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          let result = { data: null, error: null };
           
-          supabase.storage.from('accesorios').upload(filePath, file)
-            .then(({ data, error }) => {
-              if (error) {
-                showToast('Error al subir la imagen.', 'error');
-                return;
+          switch (operation) {
+            case 'select':
+              result.data = mockData[table] || [];
+              if (filters) {
+                result.data = result.data.filter(item => {
+                  return Object.keys(filters).every(key => {
+                    if (!filters[key]) return true;
+                    const itemValue = item[key] || '';
+                    return itemValue.toString().toLowerCase().includes(filters[key].toLowerCase());
+                  });
+                });
               }
+              break;
               
-              imagePath = data.path;
-              saveInventoryItem();
-            });
-        } else {
-          saveInventoryItem();
+            case 'insert':
+              const newId = Math.max(...(mockData[table]?.map(item => item.id) || [0])) + 1;
+              const newItem = { id: newId, ...data };
+              if (!mockData[table]) mockData[table] = [];
+              mockData[table].push(newItem);
+              result.data = [newItem];
+              break;
+              
+            case 'update':
+              if (mockData[table]) {
+                const index = mockData[table].findIndex(item => item.id === data.id);
+                if (index !== -1) {
+                  mockData[table][index] = { ...mockData[table][index], ...data };
+                  result.data = [mockData[table][index]];
+                }
+              }
+              break;
+              
+            case 'delete':
+              if (mockData[table]) {
+                const index = mockData[table].findIndex(item => item.id === data.id);
+                if (index !== -1) {
+                  mockData[table].splice(index, 1);
+                  result.data = [];
+                }
+              }
+              break;
+          }
+          
+          resolve(result);
+        }, 300);
+      });
+    }
+
+    // ===== FUNCIONES DE ENTRADA =====
+    async function handleEntradaSubmit(e) {
+      e.preventDefault();
+      
+      const isEditing = document.getElementById('entrada-id').value;
+      const button = document.getElementById('guardar-entrada');
+      const originalText = button.innerHTML;
+      
+      try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+        
+        // Recopilar datos
+        const formData = {
+          "Número de Parte": document.getElementById('numero-parte').value.trim().toUpperCase(),
+          "Descripción del accesorio": document.getElementById('descripcion').value.trim(),
+          "Ubicación": document.getElementById('ubicacion').value.trim(),
+          "Cantidad ingresada": parseInt(document.getElementById('cantidad').value),
+          "Imágenes": document.getElementById('imagenes').files.length > 0,
+          "Fecha de Entrada": document.getElementById('fecha-entrada').value
+        };
+        
+        if (isEditing) {
+          formData.id = parseInt(isEditing);
         }
         
-        function saveInventoryItem() {
-          const inventoryItem = {
-            numero_parte: numeroParte,
-            fecha_entrada: fechaEntrada,
-            descripcion: descripcion,
-            ubicacion: ubicacion,
-            cantidad: cantidad,
-            imagen: imagePath
-          };
+        // Subir imágenes si hay
+        if (document.getElementById('imagenes').files.length > 0) {
+          const file = document.getElementById('imagenes').files[0];
+          const uploadResult = await uploadImage(file);
           
-          supabase.from('inventario').insert(inventoryItem)
-            .then(({ data, error }) => {
-              saveButton.disabled = false;
-              saveButton.innerHTML = '<i class="fas fa-save mr-2"></i> Guardar';
-              
-              if (error) {
-                showToast('Error al guardar el inventario.', 'error');
-                return;
-              }
-              
-              // Éxito
-              entradaForm.reset();
-              document.getElementById('fecha-entrada').value = today;
-              previewContainer.innerHTML = '';
-              showToast('Entrada de inventario registrada con éxito.', 'success');
-              
-              // Actualizar lista si estamos en esa pestaña
-              if (document.getElementById('stock-tab').classList.contains('active')) {
-                loadInventory();
-              }
-            });
+          if (uploadResult.error) {
+            throw new Error('Error al subir imagen');
+          }
+          
+          formData["Ruta de Imagen"] = uploadResult.data.path;
         }
-      });
-      
-      // Cargar inventario para la pestaña de Stock
-      function loadInventory() {
+        
+        // Guardar en base de datos
+        const result = isEditing ? 
+          await executeQuery('update', 'entrada', formData) :
+          await executeQuery('insert', 'entrada', formData);
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+        
+        showToast(isEditing ? 'Entrada actualizada correctamente' : 'Entrada registrada correctamente', 'success');
+        clearEntradaForm();
+        loadStock(); // Actualizar stock
+        
+      } catch (error) {
+        console.error('Error al guardar entrada:', error);
+        showToast('Error al guardar entrada: ' + error.message, 'error');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+      }
+    }
+
+    function clearEntradaForm() {
+      document.getElementById('entrada-form').reset();
+      document.getElementById('entrada-id').value = '';
+      document.getElementById('image-preview-container').innerHTML = '';
+      document.getElementById('existing-images-container').innerHTML = '';
+      document.getElementById('btn-text').textContent = 'Guardar Entrada';
+      document.getElementById('cancelar-entrada').classList.add('hidden');
+      setCurrentDateTime();
+      clearFormErrors();
+    }
+
+    function cancelEntradaEdit() {
+      clearEntradaForm();
+    }
+
+    // ===== FUNCIONES DE STOCK =====
+    async function loadStock() {
+      try {
         const stockItems = document.getElementById('stock-items');
-        stockItems.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando inventario...</td></tr>';
+        stockItems.innerHTML = '<tr><td colspan="6" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando inventario...</td></tr>';
         
-        // Simulamos carga de datos
-        setTimeout(() => {
-          stockItems.innerHTML = '';
-          
-          if (mockData.inventory.length === 0) {
-            stockItems.innerHTML = '<tr><td colspan="5" class="py-4 px-4 text-center text-gray-500">No hay elementos en el inventario.</td></tr>';
-            return;
-          }
-          
-          mockData.inventory.forEach(item => {
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-gray-50';
-            row.innerHTML = `
-              <td class="py-2 px-4 border-b">${item.numero_parte}</td>
-              <td class="py-2 px-4 border-b">${item.descripcion}</td>
-              <td class="py-2 px-4 border-b">${item.ubicacion}</td>
-              <td class="py-2 px-4 border-b text-right">${item.cantidad}</td>
-              <td class="py-2 px-4 border-b text-center">
-                ${item.imagen ? `<img src="${item.imagen}" alt="Miniatura" class="thumbnail mx-auto">` : 'Sin imagen'}
-              </td>
-            `;
-            stockItems.appendChild(row);
-          });
-          
-          // Actualizar información de paginación
-          document.getElementById('items-showing').textContent = mockData.inventory.length;
-          document.getElementById('items-total').textContent = mockData.inventory.length;
-          document.getElementById('current-page').textContent = '1';
-          document.getElementById('total-pages').textContent = '1';
-        }, 500);
+        const { data, error } = await executeQuery('select', 'entrada');
+        
+        if (error) {
+          throw new Error(error.message);
+        }
+        
+        // Calcular stock consolidado
+        currentStock = calculateStock(data);
+        displayStock(currentStock);
+        
+      } catch (error) {
+        console.error('Error al cargar stock:', error);
+        showToast('Error al cargar inventario', 'error');
+      }
+    }
+
+    function calculateStock(entradas) {
+      const stockMap = {};
+      
+      entradas.forEach(entrada => {
+        const numeroParte = entrada["Número de Parte"];
+        if (!stockMap[numeroParte]) {
+          stockMap[numeroParte] = {
+            "Número de Parte": numeroParte,
+            "Descripción del accesorio": entrada["Descripción del accesorio"],
+            "Ubicación": entrada["Ubicación"],
+            "Cantidad Disponible": 0,
+            "Imágenes": entrada["Imágenes"],
+            "Ruta de Imagen": entrada["Ruta de Imagen"],
+            "Última Entrada": entrada["Fecha de Entrada"]
+          };
+        }
+        stockMap[numeroParte]["Cantidad Disponible"] += entrada["Cantidad ingresada"];
+        
+        // Mantener la fecha más reciente
+        if (new Date(entrada["Fecha de Entrada"]) > new Date(stockMap[numeroParte]["Última Entrada"])) {
+          stockMap[numeroParte]["Última Entrada"] = entrada["Fecha de Entrada"];
+        }
+      });
+      
+      return Object.values(stockMap);
+    }
+
+    function displayStock(stock) {
+      const stockItems = document.getElementById('stock-items');
+      stockItems.innerHTML = '';
+      
+      if (stock.length === 0) {
+        stockItems.innerHTML = '<tr><td colspan="6" class="py-8 px-4 text-center text-gray-500">No hay elementos en el inventario</td></tr>';
+        updateStockPagination(0, 0);
+        return;
       }
       
-      // Exportar inventario a Excel
-      document.getElementById('exportar-excel').addEventListener('click', function() {
-        // Simulación de exportación
-        showToast('Exportando inventario a Excel...', 'success');
-        setTimeout(() => {
-          showToast('Exportación completada.', 'success');
-        }, 1500);
-      });
-      
-      // Exportar inventario a PDF
-      document.getElementById('exportar-pdf').addEventListener('click', function() {
-        // Simulación de exportación
-        showToast('Exportando inventario a PDF...', 'success');
-        setTimeout(() => {
-          showToast('Exportación completada.', 'success');
-        }, 1500);
-      });
-      
-      // Cargar accesorios para el dropdown de entregas
-      function loadAccesorios() {
-        const accesorioDropdown = document.getElementById('accesorio-id');
-        accesorioDropdown.innerHTML = '<option value="">Seleccione un accesorio</option>';
+      stock.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors';
         
-        mockData.inventory.forEach(item => {
+        const imageCell = item["Imágenes"] && item["Ruta de Imagen"] ? 
+          `<img src="${getImageUrl(item["Ruta de Imagen"])}" alt="Miniatura" class="thumbnail mx-auto" onclick="showImageModal('${getImageUrl(item["Ruta de Imagen"])}')">` : 
+          '<span class="text-gray-400 text-sm">Sin imagen</span>';
+        
+        row.innerHTML = `
+          <td class="py-3 px-4 border-b font-medium">${item["Número de Parte"]}</td>
+          <td class="py-3 px-4 border-b">${item["Descripción del accesorio"]}</td>
+          <td class="py-3 px-4 border-b">${item["Ubicación"]}</td>
+          <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}">${item["Cantidad Disponible"]}</td>
+          <td class="py-3 px-4 border-b text-center">${imageCell}</td>
+          <td class="py-3 px-4 border-b text-center">
+            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock('${item["Número de Parte"]}')" title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteStock('${item["Número de Parte"]}')" title="Eliminar">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+        stockItems.appendChild(row);
+      });
+      
+      updateStockPagination(stock.length, stock.length);
+    }
+
+    function updateStockPagination(showing, total) {
+      document.getElementById('items-showing').textContent = showing;
+      document.getElementById('items-total').textContent = total;
+    }
+
+    function applyStockFilters() {
+      const filters = {
+        "Número de Parte": document.getElementById('filtro-parte').value,
+        "Descripción del accesorio": document.getElementById('filtro-descripcion').value,
+        "Ubicación": document.getElementById('filtro-ubicacion').value
+      };
+      
+      const filteredStock = currentStock.filter(item => {
+        return Object.entries(filters).every(([key, value]) => {
+          if (!value) return true;
+          return item[key].toLowerCase().includes(value.toLowerCase());
+        });
+      });
+      
+      displayStock(filteredStock);
+      showToast('Filtros aplicados', 'success');
+    }
+
+    function clearStockFilters() {
+      document.getElementById('filtro-parte').value = '';
+      document.getElementById('filtro-descripcion').value = '';
+      document.getElementById('filtro-ubicacion').value = '';
+      displayStock(currentStock);
+      showToast('Filtros limpiados', 'success');
+    }
+
+    // ===== FUNCIONES DE ENTREGA =====
+    async function handleEntregaSubmit(e) {
+      e.preventDefault();
+      
+      const isEditing = document.getElementById('entrega-id').value;
+      const button = document.getElementById('registrar-salida');
+      const originalText = button.innerHTML;
+      
+      try {
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
+        
+        const formData = {
+          "ID de Accesorio": document.getElementById('accesorio-id').value,
+          "Cantidad": parseInt(document.getElementById('cantidad-salida').value),
+          "Tipo de Accesorio": document.getElementById('tipo-accesorio').value,
+          "Fecha de Salida": document.getElementById('fecha-salida').value,
+          "Supervisor": document.getElementById('supervisor').value,
+          "Persona que entrega": document.getElementById('persona-entrega').value
+        };
+        
+        if (isEditing) {
+          formData.id = parseInt(isEditing);
+        }
+        
+        // Validar stock disponible
+        const stockItem = currentStock.find(item => item["Número de Parte"] === formData["ID de Accesorio"]);
+        if (!stockItem || stockItem["Cantidad Disponible"] < formData["Cantidad"]) {
+          throw new Error('Stock insuficiente');
+        }
+        
+        const result = isEditing ? 
+          await executeQuery('update', 'entrega', formData) :
+          await executeQuery('insert', 'entrega', formData);
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+        
+        showToast(isEditing ? 'Entrega actualizada correctamente' : 'Entrega registrada correctamente', 'success');
+        clearEntregaForm();
+        loadStock(); // Actualizar stock
+        loadEntregas(); // Actualizar entregas
+        
+      } catch (error) {
+        console.error('Error al guardar entrega:', error);
+        showToast('Error al guardar entrega: ' + error.message, 'error');
+      } finally {
+        button.disabled = false;
+        button.innerHTML = originalText;
+      }
+    }
+
+    function clearEntregaForm() {
+      document.getElementById('entrega-form').reset();
+      document.getElementById('entrega-id').value = '';
+      document.getElementById('btn-entrega-text').textContent = 'Registrar Entrega';
+      document.getElementById('cancelar-entrega').classList.add('hidden');
+      document.getElementById('stock-disponible').textContent = '';
+      setCurrentDateTime();
+      clearFormErrors();
+    }
+
+    function cancelEntregaEdit() {
+      clearEntregaForm();
+    }
+
+    async function loadEntregas() {
+      try {
+        const entregasItems = document.getElementById('entregas-items');
+        entregasItems.innerHTML = '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>';
+        
+        const { data, error } = await executeQuery('select', 'entrega');
+        
+        if (error) {
+          throw new Error(error.message);
+        }
+        
+        currentEntregas = data;
+        displayEntregas(data);
+        
+      } catch (error) {
+        console.error('Error al cargar entregas:', error);
+        showToast('Error al cargar entregas', 'error');
+      }
+    }
+
+    function displayEntregas(entregas) {
+      const entregasItems = document.getElementById('entregas-items');
+      entregasItems.innerHTML = '';
+      
+      if (entregas.length === 0) {
+        entregasItems.innerHTML = '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500">No hay registros de entregas</td></tr>';
+        updateEntregasPagination(0, 0);
+        return;
+      }
+      
+      entregas.forEach(item => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 transition-colors';
+        
+        const fecha = new Date(item["Fecha de Salida"]).toLocaleDateString('es-ES', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        
+        row.innerHTML = `
+          <td class="py-3 px-4 border-b font-medium">${item.id}</td>
+          <td class="py-3 px-4 border-b">${item["ID de Accesorio"]}</td>
+          <td class="py-3 px-4 border-b">${item["Tipo de Accesorio"]}</td>
+          <td class="py-3 px-4 border-b text-right font-medium">${item["Cantidad"]}</td>
+          <td class="py-3 px-4 border-b">${fecha}</td>
+          <td class="py-3 px-4 border-b">${item["Supervisor"]}</td>
+          <td class="py-3 px-4 border-b">${item["Persona que entrega"]}</td>
+          <td class="py-3 px-4 border-b text-center">
+            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editEntrega(${item.id})" title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteEntrega(${item.id})" title="Eliminar">
+              <i class="fas fa-trash-alt"></i>
+            </button>
+          </td>
+        `;
+        entregasItems.appendChild(row);
+      });
+      
+      updateEntregasPagination(entregas.length, entregas.length);
+    }
+
+    function updateEntregasPagination(showing, total) {
+      document.getElementById('entregas-showing').textContent = showing;
+      document.getElementById('entregas-total').textContent = total;
+    }
+
+    function loadAccesoriosDropdown() {
+      const dropdown = document.getElementById('accesorio-id');
+      dropdown.innerHTML = '<option value="">Seleccione un accesorio</option>';
+      
+      currentStock.forEach(item => {
+        if (item["Cantidad Disponible"] > 0) {
           const option = document.createElement('option');
-          option.value = item.id;
-          option.textContent = `${item.numero_parte} - ${item.descripcion} (${item.cantidad} disponibles)`;
-          accesorioDropdown.appendChild(option);
+          option.value = item["Número de Parte"];
+          option.textContent = `${item["Número de Parte"]} - ${item["Descripción del accesorio"]} (${item["Cantidad Disponible"]} disponibles)`;
+          dropdown.appendChild(option);
+        }
+      });
+    }
+
+    function updateStockInfo() {
+      const accesorioId = document.getElementById('accesorio-id').value;
+      const stockInfo = document.getElementById('stock-disponible');
+      
+      if (accesorioId) {
+        const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioId);
+        if (stockItem) {
+          stockInfo.textContent = `Stock disponible: ${stockItem["Cantidad Disponible"]} unidades`;
+          stockInfo.className = stockItem["Cantidad Disponible"] <= 5 ? 'text-sm text-red-600 mt-1' : 'text-sm text-green-600 mt-1';
+        }
+      } else {
+        stockInfo.textContent = '';
+      }
+    }
+
+    function applyEntregasFilters() {
+      const filters = {
+        "Fecha de Salida": document.getElementById('filtro-fecha').value,
+        "Supervisor": document.getElementById('filtro-supervisor').value,
+        "Tipo de Accesorio": document.getElementById('filtro-tipo').value
+      };
+      
+      const filteredEntregas = currentEntregas.filter(item => {
+        return Object.entries(filters).every(([key, value]) => {
+          if (!value) return true;
+          
+          if (key === "Fecha de Salida") {
+            const itemDate = new Date(item[key]).toISOString().split('T')[0];
+            return itemDate === value;
+          }
+          
+          return item[key].toLowerCase().includes(value.toLowerCase());
         });
-      }
+      });
       
-      // Cargar salidas para la tabla de historial
-      function loadSalidas() {
-        const salidasItems = document.getElementById('salidas-items');
-        salidasItems.innerHTML = '<tr><td colspan="7" class="py-4 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Cargando salidas...</td></tr>';
+      displayEntregas(filteredEntregas);
+      showToast('Filtros aplicados', 'success');
+    }
+
+    function clearEntregasFilters() {
+      document.getElementById('filtro-fecha').value = '';
+      document.getElementById('filtro-supervisor').value = '';
+      document.getElementById('filtro-tipo').value = '';
+      displayEntregas(currentEntregas);
+      showToast('Filtros limpiados', 'success');
+    }
+
+    // ===== FUNCIONES DE EDICIÓN Y ELIMINACIÓN =====
+    function editStock(numeroParte) {
+      // Buscar la entrada más reciente para este número de parte
+      const entrada = mockData.entrada.find(e => e["Número de Parte"] === numeroParte);
+      if (!entrada) return;
+      
+      // Llenar formulario
+      document.getElementById('entrada-id').value = entrada.id;
+      document.getElementById('numero-parte').value = entrada["Número de Parte"];
+      document.getElementById('descripcion').value = entrada["Descripción del accesorio"];
+      document.getElementById('ubicacion').value = entrada["Ubicación"];
+      document.getElementById('cantidad').value = entrada["Cantidad ingresada"];
+      
+      const fecha = new Date(entrada["Fecha de Entrada"]);
+      document.getElementById('fecha-entrada').value = fecha.toISOString().slice(0, 16);
+      
+      // Cambiar a modo edición
+      document.getElementById('btn-text').textContent = 'Actualizar Entrada';
+      document.getElementById('cancelar-entrada').classList.remove('hidden');
+      
+      // Cambiar a pestaña de entrada
+      document.querySelector('.tab-link[data-tab="entrada"]').click();
+      
+      showToast('Editando entrada. Modifique los campos y guarde los cambios.', 'info');
+    }
+
+    async function confirmDeleteStock(numeroParte) {
+      const confirmed = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: `Se eliminará todo el stock del producto ${numeroParte}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      });
+      
+      if (confirmed.isConfirmed) {
+        // Eliminar todas las entradas con este número de parte
+        const entradas = mockData.entrada.filter(e => e["Número de Parte"] === numeroParte);
         
-        // Simulamos carga de datos
-        setTimeout(() => {
-          salidasItems.innerHTML = '';
+        for (const entrada of entradas) {
+          await executeQuery('delete', 'entrada', { id: entrada.id });
+        }
+        
+        showToast('Stock eliminado correctamente', 'success');
+        loadStock();
+      }
+    }
+
+    function editEntrega(id) {
+      const entrega = currentEntregas.find(e => e.id === id);
+      if (!entrega) return;
+      
+      // Llenar formulario
+      document.getElementById('entrega-id').value = entrega.id;
+      document.getElementById('accesorio-id').value = entrega["ID de Accesorio"];
+      document.getElementById('tipo-accesorio').value = entrega["Tipo de Accesorio"];
+      document.getElementById('cantidad-salida').value = entrega["Cantidad"];
+      document.getElementById('supervisor').value = entrega["Supervisor"];
+      document.getElementById('persona-entrega').value = entrega["Persona que entrega"];
+      
+      const fecha = new Date(entrega["Fecha de Salida"]);
+      document.getElementById('fecha-salida').value = fecha.toISOString().slice(0, 16);
+      
+      // Cambiar a modo edición
+      document.getElementById('btn-entrega-text').textContent = 'Actualizar Entrega';
+      document.getElementById('cancelar-entrega').classList.remove('hidden');
+      
+      updateStockInfo();
+      showToast('Editando entrega. Modifique los campos y guarde los cambios.', 'info');
+    }
+
+    async function confirmDeleteEntrega(id) {
+      const confirmed = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción no se puede revertir",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+      });
+      
+      if (confirmed.isConfirmed) {
+        try {
+          const { error } = await executeQuery('delete', 'entrega', { id });
           
-          if (mockData.salidas.length === 0) {
-            salidasItems.innerHTML = '<tr><td colspan="7" class="py-4 px-4 text-center text-gray-500">No hay registros de salidas.</td></tr>';
-            return;
+          if (error) {
+            throw new Error(error.message);
           }
           
-          mockData.salidas.forEach(item => {
-            const accesorio = mockData.inventory.find(inv => inv.id === item.accesorio_id) || { numero_parte: 'Desconocido' };
-            
-            const row = document.createElement('tr');
-            row.className = 'hover:bg-gray-50';
-            row.innerHTML = `
-              <td class="py-2 px-4 border-b">${item.id}</td>
-              <td class="py-2 px-4 border-b">${accesorio.numero_parte}</td>
-              <td class="py-2 px-4 border-b text-right">${item.cantidad}</td>
-              <td class="py-2 px-4 border-b">${item.fecha_salida}</td>
-              <td class="py-2 px-4 border-b">${item.supervisor}</td>
-              <td class="py-2 px-4 border-b">${item.persona}</td>
-              <td class="py-2 px-4 border-b text-center">
-                <button class="text-blue-600 hover:text-blue-800 mx-1 editar-salida" data-id="${item.id}">
-                  <i class="fas fa-edit"></i>
-                </button>
-                <button class="text-red-600 hover:text-red-800 mx-1 eliminar-salida" data-id="${item.id}">
-                  <i class="fas fa-trash-alt"></i>
-                </button>
-              </td>
-            `;
-            salidasItems.appendChild(row);
+          showToast('Entrega eliminada correctamente', 'success');
+          loadEntregas();
+          loadStock(); // Actualizar stock
+        } catch (error) {
+          console.error('Error al eliminar entrega:', error);
+          showToast('Error al eliminar entrega', 'error');
+        }
+      }
+    }
+
+    // ===== FUNCIONES DE UTILIDAD =====
+    async function uploadImage(file) {
+      if (!isConnected) {
+        return { data: { path: `${CONFIG.supabase.storage.folder}/${Date.now()}_${file.name}` }, error: null };
+      }
+
+      try {
+        const fileName = `${Date.now()}_${file.name}`;
+        const filePath = `${CONFIG.supabase.storage.folder}/${fileName}`;
+        
+        const { data, error } = await supabase.storage
+          .from(CONFIG.supabase.storage.bucketName)
+          .upload(filePath, file);
+          
+        return { data, error };
+      } catch (error) {
+        console.error('Error al subir imagen:', error);
+        return { data: null, error };
+      }
+    }
+
+    function getImageUrl(path) {
+      if (!isConnected || !path) {
+        return 'https://via.placeholder.com/150x150?text=Sin+Imagen';
+      }
+
+      try {
+        const { data } = supabase.storage
+          .from(CONFIG.supabase.storage.bucketName)
+          .getPublicUrl(path);
+        return data.publicUrl;
+      } catch (error) {
+        console.error('Error al obtener URL de imagen:', error);
+        return 'https://via.placeholder.com/150x150?text=Error';
+      }
+    }
+
+    function showToast(message, type = 'success', duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = `toast toast-${type} show`;
+      toast.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" class="ml-2 hover:opacity-75">
+          <i class="fas fa-times"></i>
+        </button>
+      `;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    function clearFormErrors() {
+      document.querySelectorAll('.form-error').forEach(el => {
+        el.classList.remove('form-error');
+      });
+      document.querySelectorAll('.error-message').forEach(el => {
+        el.classList.add('hidden');
+        el.textContent = '';
+      });
+    }
+
+    function exportStock(format) {
+      if (format === 'excel') {
+        exportToExcel(currentStock, 'inventario_stock', 'Stock');
+      } else if (format === 'pdf') {
+        exportToPDF(currentStock, 'Reporte de Stock', 'inventario_stock');
+      }
+    }
+
+    function exportEntregas(format) {
+      if (format === 'excel') {
+        exportToExcel(currentEntregas, 'historial_entregas', 'Entregas');
+      } else if (format === 'pdf') {
+        exportToPDF(currentEntregas, 'Historial de Entregas', 'historial_entregas');
+      }
+    }
+
+    function exportToExcel(data, filename, sheetName) {
+      try {
+        const ws = XLSX.utils.json_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        XLSX.writeFile(wb, `${filename}.xlsx`);
+        showToast('Archivo Excel descargado correctamente', 'success');
+      } catch (error) {
+        console.error('Error al exportar Excel:', error);
+        showToast('Error al exportar a Excel', 'error');
+      }
+    }
+
+    function exportToPDF(data, title, filename) {
+      try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        doc.setFont('helvetica');
+        doc.setFontSize(16);
+        doc.text(title, 20, 20);
+        
+        doc.setFontSize(10);
+        doc.text(`Generado el: ${new Date().toLocaleDateString('es-ES')}`, 20, 30);
+        
+        if (data.length > 0) {
+          const columns = Object.keys(data[0]);
+          const rows = data.map(item => columns.map(col => String(item[col] || '')));
+          
+          doc.autoTable({
+            head: [columns],
+            body: rows,
+            startY: 40,
+            styles: { fontSize: 8 },
+            headStyles: { fillColor: [66, 139, 202] }
           });
-          
-          // Añadir event listeners para botones de editar y eliminar
-          document.querySelectorAll('.editar-salida').forEach(btn => {
-            btn.addEventListener('click', function() {
-              const salidaId = parseInt(this.getAttribute('data-id'));
-              openEditModal(salidaId);
-            });
-          });
-          
-          document.querySelectorAll('.eliminar-salida').forEach(btn => {
-            btn.addEventListener('click', function() {
-              const salidaId = parseInt(this.getAttribute('data-id'));
-              confirmDeleteSalida(salidaId);
-            });
-          });
-          
-          // Actualizar información de paginación
-          document.getElementById('salidas-showing').textContent = mockData.salidas.length;
-          document.getElementById('salidas-total').textContent = mockData.salidas.length;
-          document.getElementById('current-page-salidas').textContent = '1';
-          document.getElementById('total-pages-salidas').textContent = '1';
-        }, 500);
-      }
-      
-      // Formulario de registro de salida
-      const entregaForm = document.getElementById('entrega-form');
-      entregaForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const accesorioId = document.getElementById('accesorio-id').value;
-        const tipoAccesorio = document.getElementById('tipo-accesorio').value;
-        const cantidadSalida = parseInt(document.getElementById('cantidad-salida').value);
-        const celdaDestino = document.getElementById('celda-destino').value;
-        const supervisor = document.getElementById('supervisor').value;
-        const personaEntrega = document.getElementById('persona-entrega').value;
-        const fechaSalida = document.getElementById('fecha-salida').value;
-        
-        // Validación
-        if (!accesorioId || !tipoAccesorio || !cantidadSalida || !celdaDestino || !supervisor || !personaEntrega || !fechaSalida) {
-          showToast('Por favor complete todos los campos obligatorios.', 'error');
-          return;
         }
         
-        // Verificar stock disponible
-        const accesorio = mockData.inventory.find(item => item.id === parseInt(accesorioId));
-        if (!accesorio || accesorio.cantidad < cantidadSalida) {
-          showToast('No hay suficiente stock disponible.', 'error');
-          return;
-        }
-        
-        // Simular carga
-        const saveButton = document.getElementById('registrar-salida');
-        saveButton.disabled = true;
-        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Registrando...';
-        
-        const salidaItem = {
-          accesorio_id: parseInt(accesorioId),
-          tipo_accesorio: tipoAccesorio,
-          cantidad: cantidadSalida,
-          celda_destino: celdaDestino,
-          supervisor: supervisor,
-          persona: personaEntrega,
-          fecha_salida: fechaSalida
-        };
-        
-        // Simulación de registro de salida
-        setTimeout(() => {
-          // Añadir a las salidas mockeadas
-          const newId = mockData.salidas.length > 0 ? Math.max(...mockData.salidas.map(s => s.id)) + 1 : 1;
-          mockData.salidas.push({ id: newId, ...salidaItem });
-          
-          // Actualizar stock
-          accesorio.cantidad -= cantidadSalida;
-          
-          saveButton.disabled = false;
-          saveButton.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Registrar Salida';
-          
-          // Éxito
-          entregaForm.reset();
-          document.getElementById('fecha-salida').value = today;
-          showToast('Salida de accesorios registrada con éxito.', 'success');
-          
-          // Recargar datos
-          loadAccesorios();
-          loadSalidas();
-        }, 800);
-      });
-      
-      // Abrir modal de edición
-      function openEditModal(salidaId) {
-        const salida = mockData.salidas.find(s => s.id === salidaId);
-        if (!salida) return;
-        
-        document.getElementById('editar-id').value = salida.id;
-        document.getElementById('editar-cantidad').value = salida.cantidad;
-        document.getElementById('editar-supervisor').value = salida.supervisor;
-        document.getElementById('editar-persona').value = salida.persona;
-        
-        document.getElementById('modal-editar').classList.remove('hidden');
+        doc.save(`${filename}.pdf`);
+        showToast('Archivo PDF descargado correctamente', 'success');
+      } catch (error) {
+        console.error('Error al exportar PDF:', error);
+        showToast('Error al exportar a PDF', 'error');
       }
-      
-      // Cerrar modal
-      document.getElementById('cerrar-modal').addEventListener('click', function() {
-        document.getElementById('modal-editar').classList.add('hidden');
-      });
-      
-      document.getElementById('cancelar-edicion').addEventListener('click', function() {
-        document.getElementById('modal-editar').classList.add('hidden');
-      });
-      
-      // Guardar edición
-      document.getElementById('editar-salida-form').addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const id = parseInt(document.getElementById('editar-id').value);
-        const nuevaCantidad = parseInt(document.getElementById('editar-cantidad').value);
-        const nuevoSupervisor = document.getElementById('editar-supervisor').value;
-        const nuevaPersona = document.getElementById('editar-persona').value;
-        
-        // Actualizar en mock data
-        const salidaIndex = mockData.salidas.findIndex(s => s.id === id);
-        if (salidaIndex !== -1) {
-          const cantidadAnterior = mockData.salidas[salidaIndex].cantidad;
-          const accesorioId = mockData.salidas[salidaIndex].accesorio_id;
-          const accesorio = mockData.inventory.find(item => item.id === accesorioId);
-          
-          // Ajustar inventario (devolver cantidad anterior y restar nueva cantidad)
-          if (accesorio) {
-            accesorio.cantidad += cantidadAnterior - nuevaCantidad;
-          }
-          
-          // Actualizar salida
-          mockData.salidas[salidaIndex].cantidad = nuevaCantidad;
-          mockData.salidas[salidaIndex].supervisor = nuevoSupervisor;
-          mockData.salidas[salidaIndex].persona = nuevaPersona;
-          
-          showToast('Salida actualizada correctamente.', 'success');
-          document.getElementById('modal-editar').classList.add('hidden');
-          loadSalidas();
-          loadAccesorios();
-        }
-      });
-      
-      // Confirmar eliminación de salida
-      function confirmDeleteSalida(salidaId) {
-        Swal.fire({
-          title: '¿Estás seguro?',
-          text: "Esta acción no se puede revertir",
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#3085d6',
-          confirmButtonText: 'Sí, eliminar',
-          cancelButtonText: 'Cancelar'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            deleteSalida(salidaId);
-          }
-        });
-      }
-      
-      // Eliminar salida
-      function deleteSalida(salidaId) {
-        const salidaIndex = mockData.salidas.findIndex(s => s.id === salidaId);
-        if (salidaIndex !== -1) {
-          const salida = mockData.salidas[salidaIndex];
-          const accesorio = mockData.inventory.find(item => item.id === salida.accesorio_id);
-          
-          // Devolver cantidades al inventario
-          if (accesorio) {
-            accesorio.cantidad += salida.cantidad;
-          }
-          
-          // Eliminar salida
-          mockData.salidas.splice(salidaIndex, 1);
-          
-          showToast('Salida eliminada correctamente.', 'success');
-          loadSalidas();
-          loadAccesorios();
-        }
-      }
-      
-      // Filtros de stock
-      document.getElementById('aplicar-filtros').addEventListener('click', function() {
-        // Simulación de filtrado
-        showToast('Filtros aplicados.', 'success');
-        
-        // Guardar filtros en localStorage
-        const filtros = {
-          parte: document.getElementById('filtro-parte').value,
-          descripcion: document.getElementById('filtro-descripcion').value,
-          ubicacion: document.getElementById('filtro-ubicacion').value
-        };
-        localStorage.setItem('filtrosStock', JSON.stringify(filtros));
-      });
-      
-      document.getElementById('limpiar-filtros').addEventListener('click', function() {
-        document.getElementById('filtro-parte').value = '';
-        document.getElementById('filtro-descripcion').value = '';
-        document.getElementById('filtro-ubicacion').value = '';
-        
-        localStorage.removeItem('filtrosStock');
-        showToast('Filtros limpiados.', 'success');
-      });
-      
-      // Filtros de salidas
-      document.getElementById('aplicar-filtros-salidas').addEventListener('click', function() {
-        // Simulación de filtrado
-        showToast('Filtros aplicados.', 'success');
-        
-        // Guardar filtros en localStorage
-        const filtros = {
-          fecha: document.getElementById('filtro-fecha').value,
-          supervisor: document.getElementById('filtro-supervisor').value,
-          celda: document.getElementById('filtro-celda').value
-        };
-        localStorage.setItem('filtrosSalidas', JSON.stringify(filtros));
-      });
-      
-      document.getElementById('limpiar-filtros-salidas').addEventListener('click', function() {
-        document.getElementById('filtro-fecha').value = '';
-        document.getElementById('filtro-supervisor').value = '';
-        document.getElementById('filtro-celda').value = '';
-        
-        localStorage.removeItem('filtrosSalidas');
-        showToast('Filtros limpiados.', 'success');
-      });
-      
-      // Restaurar filtros guardados
-      const savedStockFilters = localStorage.getItem('filtrosStock');
-      if (savedStockFilters) {
-        const filtros = JSON.parse(savedStockFilters);
-        document.getElementById('filtro-parte').value = filtros.parte || '';
-        document.getElementById('filtro-descripcion').value = filtros.descripcion || '';
-        document.getElementById('filtro-ubicacion').value = filtros.ubicacion || '';
-      }
-      
-      const savedSalidasFilters = localStorage.getItem('filtrosSalidas');
-      if (savedSalidasFilters) {
-        const filtros = JSON.parse(savedSalidasFilters);
-        document.getElementById('filtro-fecha').value = filtros.fecha || '';
-        document.getElementById('filtro-supervisor').value = filtros.supervisor || '';
-        document.getElementById('filtro-celda').value = filtros.celda || '';
-      }
-      
-      // Exportar salidas a Excel
-      document.getElementById('exportar-excel-salidas').addEventListener('click', function() {
-        // Simulación de exportación
-        showToast('Exportando salidas a Excel...', 'success');
-        setTimeout(() => {
-          showToast('Exportación completada.', 'success');
-        }, 1500);
-      });
-      
-      // Exportar salidas a PDF
-      document.getElementById('exportar-pdf-salidas').addEventListener('click', function() {
-        // Simulación de exportación
-        showToast('Exportando salidas a PDF...', 'success');
-        setTimeout(() => {
-          showToast('Exportación completada.', 'success');
-        }, 1500);
-      });
-      
-      // Función para mostrar toast
-      function showToast(message, type = 'success') {
-        const toast = document.getElementById('toast');
-        const toastMessage = document.getElementById('toast-message');
-        
-        toast.className = `toast toast-${type}`;
-        toastMessage.textContent = message;
-        
-        toast.classList.add('show');
-        
-        setTimeout(() => {
-          toast.classList.remove('show');
-        }, 3000);
-      }
-      
-      // Cargar datos iniciales
-      loadInventory();
-    });
+    }
+
+    function loadInitialData() {
+      loadStock();
+    }
+
+    // Hacer funciones globales
+    window.editStock = editStock;
+    window.confirmDeleteStock = confirmDeleteStock;
+    window.editEntrega = editEntrega;
+    window.confirmDeleteEntrega = confirmDeleteEntrega;
+    window.showImageModal = showImageModal;
+    window.closeImageModal = closeImageModal;
+    window.removeImagePreview = removeImagePreview;
   </script>
 </body>
 </html>
+
