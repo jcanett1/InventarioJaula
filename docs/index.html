@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Corregida</title>
+  <title>Sistema de Gestión de Inventario - Versión Corregida Final</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -158,6 +158,11 @@
       border-color: #3b82f6;
       background-color: #eff6ff;
     }
+    .readonly-field {
+      background-color: #f9fafb;
+      color: #6b7280;
+      cursor: not-allowed;
+    }
     @media (max-width: 640px) {
       .responsive-table {
         display: block;
@@ -178,7 +183,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Corregida</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -235,10 +240,10 @@
             
             <div class="form-group">
               <label for="fecha-entrada" class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Entrada *
+                Fecha de Entrada (Automática)
               </label>
-              <input type="datetime-local" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <div id="fecha-entrada-error" class="error-message hidden"></div>
+              <input type="text" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
+              <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente al momento del registro</div>
             </div>
             
             <div class="form-group md:col-span-2">
@@ -436,18 +441,41 @@
               <div id="cantidad-salida-error" class="error-message hidden"></div>
             </div>
             
+            <!-- NUEVOS CAMPOS MOVIDOS AQUÍ -->
+            <div class="form-group">
+              <label for="numero-orden" class="block text-sm font-medium text-gray-700 mb-1">
+                Número de Orden
+              </label>
+              <input type="text" id="numero-orden" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: ORD-2024-001">
+              <div id="numero-orden-error" class="error-message hidden"></div>
+            </div>
+            
+            <div class="form-group">
+              <label for="sh" class="block text-sm font-medium text-gray-700 mb-1">
+                SH
+              </label>
+              <input type="text" id="sh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: SH-001">
+              <div id="sh-error" class="error-message hidden"></div>
+            </div>
+            
+            <div class="form-group">
+              <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">
+                Fecha de Salida (Automática)
+              </label>
+              <input type="text" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
+              <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente al momento del registro</div>
+            </div>
+            
             <div class="form-group">
               <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-1">
                 Supervisor *
               </label>
               <select id="supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                 <option value="">Seleccione un supervisor</option>
-                <option value="Juan Pérez">Denise Garcia</option>
-                <option value="María García">Cinthya leon</option>
-                <option value="Carlos López">Alan Ramos</option>
-                <option value="Ana Rodríguez">Milagros Navarro</option>
-                 <option value="Ana Rodríguez">Otton Morales</option>
-                <option value="Ana Rodríguez">Alejandra Lopez</option>
+                <option value="Juan Pérez">Juan Pérez</option>
+                <option value="María García">María García</option>
+                <option value="Carlos López">Carlos López</option>
+                <option value="Ana Rodríguez">Ana Rodríguez</option>
               </select>
               <div id="supervisor-error" class="error-message hidden"></div>
             </div>
@@ -462,14 +490,6 @@
                 <option value="Denise">Denise</option>
               </select>
               <div id="persona-entrega-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Salida *
-              </label>
-              <input type="datetime-local" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <div id="fecha-salida-error" class="error-message hidden"></div>
             </div>
             
             <div class="md:col-span-3 flex gap-3">
@@ -550,6 +570,8 @@
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Accesorio</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Tipo</th>
                   <th class="py-3 px-4 border-b text-right font-medium text-gray-700">Cantidad</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Número de Orden</th>
+                  <th class="py-3 px-4 border-b text-left font-medium text-gray-700">SH</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Fecha</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Supervisor</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Persona</th>
@@ -558,7 +580,7 @@
               </thead>
               <tbody id="entregas-items">
                 <tr>
-                  <td colspan="8" class="py-8 px-4 text-center text-gray-500">
+                  <td colspan="10" class="py-8 px-4 text-center text-gray-500">
                     <i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...
                   </td>
                 </tr>
@@ -617,10 +639,11 @@
     let isConnected = false;
     let currentStock = [];
     let currentEntregas = [];
+    let currentEntradas = [];
     let currentPage = 1;
     let currentPageEntregas = 1;
 
-    // Datos mock para modo demo
+    // Datos mock para modo demo (corregidos - sin campos en entrada)
     const mockData = {
       entrada: [
         {
@@ -648,6 +671,8 @@
           "ID de Accesorio": "ACC-001",
           "Cantidad": 5,
           "Tipo de Accesorio": "bolsa",
+          "Número de Orden": "ORD-2024-001",
+          "SH": "SH-001",
           "Fecha de Salida": "2024-01-20T09:15:00",
           "Supervisor": "Juan Pérez",
           "Persona que entrega": "Yodeli"
@@ -739,7 +764,15 @@
 
     function setCurrentDateTime() {
       const now = new Date();
-      const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+      const localDateTime = now.toLocaleString('es-ES', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      
       safeSetValue('fecha-entrada', localDateTime);
       safeSetValue('fecha-salida', localDateTime);
     }
@@ -1041,14 +1074,15 @@
           button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
         }
         
-        // Recopilar datos
+        // Recopilar datos con fecha automática del sistema (SIN campos Número de Orden y SH)
+        const now = new Date();
         const formData = {
           "Número de Parte": safeGetElement('numero-parte')?.value?.trim()?.toUpperCase() || '',
           "Descripción del accesorio": safeGetElement('descripcion')?.value?.trim() || '',
           "Ubicación": safeGetElement('ubicacion')?.value?.trim() || '',
           "Cantidad ingresada": parseInt(safeGetElement('cantidad')?.value || 0),
           "Imágenes": (safeGetElement('imagenes')?.files?.length || 0) > 0,
-          "Fecha de Entrada": safeGetElement('fecha-entrada')?.value || ''
+          "Fecha de Entrada": now.toISOString()
         };
         
         if (isEditing) {
@@ -1092,7 +1126,6 @@
       }
     }
 
-    // ===== FUNCIÓN CORREGIDA clearEntradaForm =====
     function clearEntradaForm() {
       try {
         // Resetear formulario de manera segura
@@ -1123,7 +1156,6 @@
         console.log('Formulario de entrada limpiado correctamente');
       } catch (error) {
         console.error('Error al limpiar formulario de entrada:', error);
-        // Mostrar toast de error pero no interrumpir el flujo
         showToast('Formulario limpiado (con advertencias menores)', 'warning');
       }
     }
@@ -1143,6 +1175,7 @@
           throw new Error(error.message);
         }
         
+        currentEntradas = data;
         // Calcular stock consolidado
         currentStock = calculateStock(data);
         displayStock(currentStock);
@@ -1166,14 +1199,33 @@
             "Cantidad Disponible": 0,
             "Imágenes": entrada["Imágenes"],
             "Ruta de Imagen": entrada["Ruta de Imagen"],
-            "Última Entrada": entrada["Fecha de Entrada"]
+            "Última Entrada": entrada["Fecha de Entrada"],
+            "entrada_id": entrada.id
           };
         }
-        stockMap[numeroParte]["Cantidad Disponible"] += entrada["Cantidad ingresada"];
+        
+        // Calcular stock disponible (entradas - entregas)
+        let cantidadDisponible = entrada["Cantidad ingresada"];
+        
+        // Restar entregas de este número de parte
+        if (currentEntregas && currentEntregas.length > 0) {
+          const entregasDelItem = currentEntregas.filter(entrega => 
+            entrega["ID de Accesorio"] === numeroParte
+          );
+          
+          const totalEntregado = entregasDelItem.reduce((total, entrega) => 
+            total + (entrega["Cantidad"] || 0), 0
+          );
+          
+          cantidadDisponible -= totalEntregado;
+        }
+        
+        stockMap[numeroParte]["Cantidad Disponible"] += cantidadDisponible;
         
         // Mantener la fecha más reciente
         if (new Date(entrada["Fecha de Entrada"]) > new Date(stockMap[numeroParte]["Última Entrada"])) {
           stockMap[numeroParte]["Última Entrada"] = entrada["Fecha de Entrada"];
+          stockMap[numeroParte]["entrada_id"] = entrada.id;
         }
       });
       
@@ -1207,7 +1259,7 @@
           <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}">${item["Cantidad Disponible"]}</td>
           <td class="py-3 px-4 border-b text-center">${imageCell}</td>
           <td class="py-3 px-4 border-b text-center">
-            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock('${item["Número de Parte"]}')" title="Editar">
+            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock(${item.entrada_id})" title="Editar">
               <i class="fas fa-edit"></i>
             </button>
             <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteStock('${item["Número de Parte"]}')" title="Eliminar">
@@ -1266,11 +1318,14 @@
           button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
         }
         
+        const now = new Date();
         const formData = {
           "ID de Accesorio": safeGetElement('accesorio-id')?.value || '',
           "Cantidad": parseInt(safeGetElement('cantidad-salida')?.value || 0),
           "Tipo de Accesorio": safeGetElement('tipo-accesorio')?.value || '',
-          "Fecha de Salida": safeGetElement('fecha-salida')?.value || '',
+          "Número de Orden": safeGetElement('numero-orden')?.value?.trim() || '', // AHORA AQUÍ
+          "SH": safeGetElement('sh')?.value?.trim() || '', // AHORA AQUÍ
+          "Fecha de Salida": now.toISOString(),
           "Supervisor": safeGetElement('supervisor')?.value || '',
           "Persona que entrega": safeGetElement('persona-entrega')?.value || ''
         };
@@ -1282,7 +1337,7 @@
         // Validar stock disponible
         const stockItem = currentStock.find(item => item["Número de Parte"] === formData["ID de Accesorio"]);
         if (!stockItem || stockItem["Cantidad Disponible"] < formData["Cantidad"]) {
-          throw new Error('Stock insuficiente');
+          throw new Error('Stock insuficiente para realizar la entrega');
         }
         
         const result = isEditing ? 
@@ -1295,8 +1350,9 @@
         
         showToast(isEditing ? 'Entrega actualizada correctamente' : 'Entrega registrada correctamente', 'success');
         clearEntregaForm();
-        loadStock(); // Actualizar stock
+        loadStock(); // Actualizar stock (esto recalculará automáticamente)
         loadEntregas(); // Actualizar entregas
+        loadAccesoriosDropdown(); // Actualizar dropdown
         
       } catch (error) {
         console.error('Error al guardar entrega:', error);
@@ -1309,7 +1365,6 @@
       }
     }
 
-    // ===== FUNCIÓN CORREGIDA clearEntregaForm =====
     function clearEntregaForm() {
       try {
         // Resetear formulario de manera segura
@@ -1349,7 +1404,7 @@
 
     async function loadEntregas() {
       try {
-        safeSetInnerHTML('entregas-items', '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>');
+        safeSetInnerHTML('entregas-items', '<tr><td colspan="10" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>');
         
         const { data, error } = await executeQuery('select', 'entrega');
         
@@ -1373,7 +1428,7 @@
       entregasItems.innerHTML = '';
       
       if (entregas.length === 0) {
-        entregasItems.innerHTML = '<tr><td colspan="8" class="py-8 px-4 text-center text-gray-500">No hay registros de entregas</td></tr>';
+        entregasItems.innerHTML = '<tr><td colspan="10" class="py-8 px-4 text-center text-gray-500">No hay registros de entregas</td></tr>';
         updateEntregasPagination(0, 0);
         return;
       }
@@ -1395,6 +1450,8 @@
           <td class="py-3 px-4 border-b">${item["ID de Accesorio"]}</td>
           <td class="py-3 px-4 border-b">${item["Tipo de Accesorio"]}</td>
           <td class="py-3 px-4 border-b text-right font-medium">${item["Cantidad"]}</td>
+          <td class="py-3 px-4 border-b">${item["Número de Orden"] || ''}</td>
+          <td class="py-3 px-4 border-b">${item["SH"] || ''}</td>
           <td class="py-3 px-4 border-b">${fecha}</td>
           <td class="py-3 px-4 border-b">${item["Supervisor"]}</td>
           <td class="py-3 px-4 border-b">${item["Persona que entrega"]}</td>
@@ -1484,20 +1541,24 @@
     }
 
     // ===== FUNCIONES DE EDICIÓN Y ELIMINACIÓN =====
-    function editStock(numeroParte) {
-      // Buscar la entrada más reciente para este número de parte
-      const entrada = mockData.entrada.find(e => e["Número de Parte"] === numeroParte);
-      if (!entrada) return;
+    function editStock(entradaId) {
+      // Buscar la entrada específica por ID
+      const entrada = currentEntradas.find(e => e.id === entradaId);
+      if (!entrada) {
+        showToast('No se encontró la entrada para editar', 'error');
+        return;
+      }
       
-      // Llenar formulario
+      // Llenar formulario (SIN campos Número de Orden y SH)
       safeSetValue('entrada-id', entrada.id);
       safeSetValue('numero-parte', entrada["Número de Parte"]);
       safeSetValue('descripcion', entrada["Descripción del accesorio"]);
       safeSetValue('ubicacion', entrada["Ubicación"]);
       safeSetValue('cantidad', entrada["Cantidad ingresada"]);
       
+      // La fecha se mantiene como solo lectura
       const fecha = new Date(entrada["Fecha de Entrada"]);
-      safeSetValue('fecha-entrada', fecha.toISOString().slice(0, 16));
+      safeSetValue('fecha-entrada', fecha.toLocaleString('es-ES'));
       
       // Cambiar a modo edición
       safeSetTextContent('btn-text', 'Actualizar Entrada');
@@ -1523,15 +1584,20 @@
       });
       
       if (confirmed.isConfirmed) {
-        // Eliminar todas las entradas con este número de parte
-        const entradas = mockData.entrada.filter(e => e["Número de Parte"] === numeroParte);
-        
-        for (const entrada of entradas) {
-          await executeQuery('delete', 'entrada', { id: entrada.id });
+        try {
+          // Eliminar todas las entradas con este número de parte
+          const entradas = currentEntradas.filter(e => e["Número de Parte"] === numeroParte);
+          
+          for (const entrada of entradas) {
+            await executeQuery('delete', 'entrada', { id: entrada.id });
+          }
+          
+          showToast('Stock eliminado correctamente', 'success');
+          loadStock();
+        } catch (error) {
+          console.error('Error al eliminar stock:', error);
+          showToast('Error al eliminar stock', 'error');
         }
-        
-        showToast('Stock eliminado correctamente', 'success');
-        loadStock();
       }
     }
 
@@ -1539,16 +1605,19 @@
       const entrega = currentEntregas.find(e => e.id === id);
       if (!entrega) return;
       
-      // Llenar formulario
+      // Llenar formulario (CON campos Número de Orden y SH)
       safeSetValue('entrega-id', entrega.id);
       safeSetValue('accesorio-id', entrega["ID de Accesorio"]);
       safeSetValue('tipo-accesorio', entrega["Tipo de Accesorio"]);
       safeSetValue('cantidad-salida', entrega["Cantidad"]);
+      safeSetValue('numero-orden', entrega["Número de Orden"] || '');
+      safeSetValue('sh', entrega["SH"] || '');
       safeSetValue('supervisor', entrega["Supervisor"]);
       safeSetValue('persona-entrega', entrega["Persona que entrega"]);
       
+      // La fecha se mantiene como solo lectura
       const fecha = new Date(entrega["Fecha de Salida"]);
-      safeSetValue('fecha-salida', fecha.toISOString().slice(0, 16));
+      safeSetValue('fecha-salida', fecha.toLocaleString('es-ES'));
       
       // Cambiar a modo edición
       safeSetTextContent('btn-entrega-text', 'Actualizar Entrega');
@@ -1581,6 +1650,7 @@
           showToast('Entrega eliminada correctamente', 'success');
           loadEntregas();
           loadStock(); // Actualizar stock
+          loadAccesoriosDropdown(); // Actualizar dropdown
         } catch (error) {
           console.error('Error al eliminar entrega:', error);
           showToast('Error al eliminar entrega', 'error');
@@ -1715,8 +1785,9 @@
       }
     }
 
-    function loadInitialData() {
-      loadStock();
+    async function loadInitialData() {
+      await loadEntregas(); // Cargar entregas primero
+      await loadStock(); // Luego cargar stock (que usa las entregas para calcular)
     }
 
     // Hacer funciones globales
