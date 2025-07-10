@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Corregida Final</title>
+  <title>Sistema de Gestión de Inventario - Versión Mejorada Completa</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -19,6 +19,12 @@
       display: none;
     }
     .tab-content.active {
+      display: block;
+    }
+    .sub-tab-content {
+      display: none;
+    }
+    .sub-tab-content.active {
       display: block;
     }
     .loading {
@@ -163,6 +169,24 @@
       color: #6b7280;
       cursor: not-allowed;
     }
+    .canceled-row {
+      background-color: #fef2f2 !important;
+      color: #dc2626;
+    }
+    .canceled-row:hover {
+      background-color: #fecaca !important;
+    }
+    .accesorio-item {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 8px;
+      background-color: #f9fafb;
+    }
+    .accesorio-item.selected {
+      border-color: #3b82f6;
+      background-color: #eff6ff;
+    }
     @media (max-width: 640px) {
       .responsive-table {
         display: block;
@@ -183,7 +207,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Corregida</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Mejorada Completa</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -220,83 +244,175 @@
       <!-- Entrada de Inventario -->
       <div id="entrada-tab" class="tab-content active">
         <div class="bg-white rounded-lg shadow-md p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-xl font-semibold">Registro de Entrada de Inventario</h2>
-            <button id="limpiar-formulario-entrada" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
-              <i class="fas fa-broom mr-2"></i>Limpiar
-            </button>
+          <!-- Sub-tabs para Entrada -->
+          <div class="border-b border-gray-200 mb-6">
+            <ul class="flex flex-wrap -mb-px" id="entrada-sub-tabs">
+              <li class="mr-2">
+                <a href="javascript:void(0)" class="sub-tab-link inline-block p-3 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 active" data-subtab="nuevo-producto">
+                  <i class="fas fa-plus mr-2"></i>Nuevo Producto
+                </a>
+              </li>
+              <li class="mr-2">
+                <a href="javascript:void(0)" class="sub-tab-link inline-block p-3 border-b-2 border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300" data-subtab="accesorio-registrado">
+                  <i class="fas fa-plus-circle mr-2"></i>Accesorio Registrado
+                </a>
+              </li>
+            </ul>
           </div>
-          
-          <form id="entrada-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <input type="hidden" id="entrada-id">
-            
-            <div class="form-group">
-              <label for="numero-parte" class="block text-sm font-medium text-gray-700 mb-1">
-                Número de Parte *
-              </label>
-              <input type="text" id="numero-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: ACC-001">
-              <div id="numero-parte-error" class="error-message hidden"></div>
+
+          <!-- Nuevo Producto -->
+          <div id="nuevo-producto-subtab" class="sub-tab-content active">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-semibold">Registro de Nuevo Producto</h2>
+              <button id="limpiar-formulario-entrada" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+                <i class="fas fa-broom mr-2"></i>Limpiar
+              </button>
             </div>
             
-            <div class="form-group">
-              <label for="fecha-entrada" class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Entrada (Automática)
-              </label>
-              <input type="text" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
-              <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente al momento del registro</div>
+            <form id="entrada-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <input type="hidden" id="entrada-id">
+              
+              <div class="form-group">
+                <label for="numero-parte" class="block text-sm font-medium text-gray-700 mb-1">
+                  Número de Parte *
+                </label>
+                <input type="text" id="numero-parte" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: ACC-001">
+                <div id="numero-parte-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="fecha-entrada" class="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Entrada (Automática)
+                </label>
+                <input type="text" id="fecha-entrada" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
+                <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente al momento del registro</div>
+              </div>
+              
+              <div class="form-group md:col-span-2">
+                <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción del accesorio *
+                </label>
+                <textarea id="descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" required placeholder="Descripción detallada del accesorio"></textarea>
+                <div id="descripcion-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="ubicacion" class="block text-sm font-medium text-gray-700 mb-1">
+                  Ubicación *
+                </label>
+                <input type="text" id="ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: Jaula A-1">
+                <div id="ubicacion-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad ingresada *
+                </label>
+                <input type="number" id="cantidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <div id="cantidad-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Imágenes del accesorio
+                </label>
+                <div class="image-upload-area" id="image-upload-area">
+                  <input type="file" id="imagenes" multiple accept="image/*" class="hidden">
+                  <div class="upload-content">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
+                    <p class="text-gray-600">Haz clic aquí o arrastra imágenes</p>
+                    <p class="text-sm text-gray-400">PNG, JPG, GIF hasta 5MB cada una</p>
+                  </div>
+                </div>
+                <div id="image-preview-container" class="mt-3 flex flex-wrap gap-2"></div>
+                <div id="existing-images-container" class="mt-3 flex flex-wrap gap-2"></div>
+                <div id="imagenes-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="md:col-span-2 mt-4 flex gap-3">
+                <button type="submit" id="guardar-entrada" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                  <i class="fas fa-save mr-2"></i>
+                  <span id="btn-text">Guardar Entrada</span>
+                </button>
+                <button type="button" id="cancelar-entrada" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors hidden">
+                  <i class="fas fa-times mr-2"></i>Cancelar
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Accesorio Registrado -->
+          <div id="accesorio-registrado-subtab" class="sub-tab-content">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-semibold">Agregar Cantidad a Producto Existente</h2>
+              <button id="limpiar-formulario-accesorio" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors">
+                <i class="fas fa-broom mr-2"></i>Limpiar
+              </button>
             </div>
             
-            <div class="form-group md:col-span-2">
-              <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
-                Descripción del accesorio *
-              </label>
-              <textarea id="descripcion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" required placeholder="Descripción detallada del accesorio"></textarea>
-              <div id="descripcion-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="ubicacion" class="block text-sm font-medium text-gray-700 mb-1">
-                Ubicación *
-              </label>
-              <input type="text" id="ubicacion" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: Jaula A-1">
-              <div id="ubicacion-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="cantidad" class="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad ingresada *
-              </label>
-              <input type="number" id="cantidad" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <div id="cantidad-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Imágenes del accesorio
-              </label>
-              <div class="image-upload-area" id="image-upload-area">
-                <input type="file" id="imagenes" multiple accept="image/*" class="hidden">
-                <div class="upload-content">
-                  <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-2"></i>
-                  <p class="text-gray-600">Haz clic aquí o arrastra imágenes</p>
-                  <p class="text-sm text-gray-400">PNG, JPG, GIF hasta 5MB cada una</p>
+            <form id="accesorio-form" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="form-group">
+                <label for="accesorio-existente" class="block text-sm font-medium text-gray-700 mb-1">
+                  Seleccionar Producto Existente *
+                </label>
+                <select id="accesorio-existente" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                  <option value="">Seleccione un producto</option>
+                </select>
+                <div id="accesorio-existente-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="cantidad-agregar" class="block text-sm font-medium text-gray-700 mb-1">
+                  Cantidad a Agregar *
+                </label>
+                <input type="number" id="cantidad-agregar" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                <div id="cantidad-agregar-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="fecha-entrada-accesorio" class="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Entrada (Automática)
+                </label>
+                <input type="text" id="fecha-entrada-accesorio" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
+                <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente</div>
+              </div>
+              
+              <div class="form-group">
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Stock Actual
+                </label>
+                <div id="stock-actual-info" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700">
+                  Seleccione un producto para ver el stock
                 </div>
               </div>
-              <div id="image-preview-container" class="mt-3 flex flex-wrap gap-2"></div>
-              <div id="existing-images-container" class="mt-3 flex flex-wrap gap-2"></div>
-              <div id="imagenes-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="md:col-span-2 mt-4 flex gap-3">
-              <button type="submit" id="guardar-entrada" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
-                <i class="fas fa-save mr-2"></i>
-                <span id="btn-text">Guardar Entrada</span>
-              </button>
-              <button type="button" id="cancelar-entrada" class="px-6 py-3 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors hidden">
-                <i class="fas fa-times mr-2"></i>Cancelar
-              </button>
-            </div>
-          </form>
+              
+              <div class="md:col-span-2">
+                <div id="producto-info" class="bg-blue-50 border border-blue-200 rounded-md p-4 hidden">
+                  <h4 class="font-medium text-blue-800 mb-2">Información del Producto</h4>
+                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span class="font-medium">Descripción:</span>
+                      <div id="info-descripcion" class="text-gray-700"></div>
+                    </div>
+                    <div>
+                      <span class="font-medium">Ubicación:</span>
+                      <div id="info-ubicacion" class="text-gray-700"></div>
+                    </div>
+                    <div>
+                      <span class="font-medium">Stock Actual:</span>
+                      <div id="info-stock" class="text-gray-700 font-bold"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="md:col-span-2 mt-4 flex gap-3">
+                <button type="submit" id="agregar-cantidad" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
+                  <i class="fas fa-plus mr-2"></i>Agregar Cantidad
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -403,98 +519,79 @@
             </button>
           </div>
           
-          <form id="entrega-form" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <form id="entrega-form" class="mb-8">
             <input type="hidden" id="entrega-id">
             
-            <div class="form-group">
-              <label for="accesorio-id" class="block text-sm font-medium text-gray-700 mb-1">
-                Accesorio *
-              </label>
-              <select id="accesorio-id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Seleccione un accesorio</option>
-              </select>
-              <div id="accesorio-id-error" class="error-message hidden"></div>
+            <!-- Información básica de la orden -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              <div class="form-group">
+                <label for="numero-orden" class="block text-sm font-medium text-gray-700 mb-1">
+                  Número de Orden *
+                </label>
+                <input type="text" id="numero-orden" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required placeholder="Ej: ORD-2024-001">
+                <div id="numero-orden-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="sh" class="block text-sm font-medium text-gray-700 mb-1">
+                  SH
+                </label>
+                <input type="text" id="sh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: SH-001">
+                <div id="sh-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">
+                  Fecha de Salida (Automática)
+                </label>
+                <input type="text" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
+                <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-1">
+                  Supervisor *
+                </label>
+                <select id="supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                  <option value="">Seleccione un supervisor</option>
+                  <option value="Dennise Garcia">Dennise Garcia</option>
+                  <option value="Alan Ramos">Alan Ramos</option>
+                  <option value="Milagros Navarro">Milagros Navarro</option>
+                  <option value="Otton Morales">Otton Morales</option>
+                  <option value="Alejandra Lopez">Alejandra Lopez</option>
+                  <option value="Cinthya Leon">Cinthya Leon</option>
+                </select>
+                <div id="supervisor-error" class="error-message hidden"></div>
+              </div>
+              
+              <div class="form-group">
+                <label for="persona-entrega" class="block text-sm font-medium text-gray-700 mb-1">
+                  Persona que entrega *
+                </label>
+                <select id="persona-entrega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                  <option value="">Seleccione una persona</option>
+                  <option value="Yodeli">Yodeli</option>
+                  <option value="Denise">Denise</option>
+                </select>
+                <div id="persona-entrega-error" class="error-message hidden"></div>
+              </div>
             </div>
             
-            <div class="form-group">
-              <label for="tipo-accesorio" class="block text-sm font-medium text-gray-700 mb-1">
-                Tipo de Accesorio *
-              </label>
-              <select id="tipo-accesorio" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Seleccione un tipo</option>
-                <option value="bolsa">Bolsa</option>
-                <option value="gorra">Gorra</option>
-                <option value="guantes">Guantes</option>
-                <option value="pelota">Pelota</option>
-                <option value="accesorio-pequeno">Accesorio pequeño</option>
-                <option value="kit">Kit</option>
-              </select>
-              <div id="tipo-accesorio-error" class="error-message hidden"></div>
+            <!-- Sección de accesorios -->
+            <div class="border-t pt-6">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Accesorios de la Orden</h3>
+                <button type="button" id="agregar-accesorio" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors">
+                  <i class="fas fa-plus mr-2"></i>Agregar Accesorio
+                </button>
+              </div>
+              
+              <div id="accesorios-container">
+                <!-- Los accesorios se agregarán dinámicamente aquí -->
+              </div>
             </div>
             
-            <div class="form-group">
-              <label for="cantidad-salida" class="block text-sm font-medium text-gray-700 mb-1">
-                Cantidad *
-              </label>
-              <input type="number" id="cantidad-salida" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-              <div id="stock-disponible" class="text-sm text-gray-500 mt-1"></div>
-              <div id="cantidad-salida-error" class="error-message hidden"></div>
-            </div>
-            
-            <!-- NUEVOS CAMPOS MOVIDOS AQUÍ -->
-            <div class="form-group">
-              <label for="numero-orden" class="block text-sm font-medium text-gray-700 mb-1">
-                Número de Orden
-              </label>
-              <input type="text" id="numero-orden" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: ORD-2024-001">
-              <div id="numero-orden-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="sh" class="block text-sm font-medium text-gray-700 mb-1">
-                SH
-              </label>
-              <input type="text" id="sh" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: SH-001">
-              <div id="sh-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="fecha-salida" class="block text-sm font-medium text-gray-700 mb-1">
-                Fecha de Salida (Automática)
-              </label>
-              <input type="text" id="fecha-salida" class="w-full px-3 py-2 border border-gray-300 rounded-md readonly-field" readonly>
-              <div class="text-xs text-gray-500 mt-1">La fecha se establece automáticamente al momento del registro</div>
-            </div>
-            
-            <div class="form-group">
-              <label for="supervisor" class="block text-sm font-medium text-gray-700 mb-1">
-                Supervisor *
-              </label>
-              <select id="supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Seleccione un supervisor</option>
-                <option value="Dennise Garcia">Dennise Garcia</option>
-                <option value="Alan Ramo">Alan Ramos</option>
-                <option value="Milagros Navarro">Milagros Navarro</option>
-                <option value="Otton Morales">Otton Morales</option>
-                <option value="Alejandra Lopez">Alejandra Lopez</option>
-                <option value="Cinthya Leonz">Cinthya Leon</option>
-              </select>
-              <div id="supervisor-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="form-group">
-              <label for="persona-entrega" class="block text-sm font-medium text-gray-700 mb-1">
-                Persona que entrega *
-              </label>
-              <select id="persona-entrega" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                <option value="">Seleccione una persona</option>
-                <option value="Yodeli">Yodeli</option>
-                <option value="Denise">Denise</option>
-              </select>
-              <div id="persona-entrega-error" class="error-message hidden"></div>
-            </div>
-            
-            <div class="md:col-span-3 flex gap-3">
+            <div class="mt-6 flex gap-3">
               <button type="submit" id="registrar-salida" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors">
                 <i class="fas fa-paper-plane mr-2"></i>
                 <span id="btn-entrega-text">Registrar Entrega</span>
@@ -522,12 +619,12 @@
                 <label for="filtro-supervisor" class="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
                 <select id="filtro-supervisor" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <option value="">Todos</option>
-                <option value="Dennise Garcia">Dennise Garcia</option>
-                <option value="Alan Ramo">Alan Ramos</option>
-                <option value="Milagros Navarro">Milagros Navarro</option>
-                <option value="Otton Morales">Otton Morales</option>
-                <option value="Alejandra Lopez">Alejandra Lopez</option>
-                <option value="Cinthya Leonz">Cinthya Leon</option>
+                  <option value="Dennise Garcia">Dennise Garcia</option>
+                  <option value="Alan Ramos">Alan Ramos</option>
+                  <option value="Milagros Navarro">Milagros Navarro</option>
+                  <option value="Otton Morales">Otton Morales</option>
+                  <option value="Alejandra Lopez">Alejandra Lopez</option>
+                  <option value="Cinthya Leon">Cinthya Leon</option>
                 </select>
               </div>
               
@@ -579,12 +676,13 @@
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Fecha</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Supervisor</th>
                   <th class="py-3 px-4 border-b text-left font-medium text-gray-700">Persona</th>
+                  <th class="py-3 px-4 border-b text-center font-medium text-gray-700">Estado</th>
                   <th class="py-3 px-4 border-b text-center font-medium text-gray-700">Acciones</th>
                 </tr>
               </thead>
               <tbody id="entregas-items">
                 <tr>
-                  <td colspan="10" class="py-8 px-4 text-center text-gray-500">
+                  <td colspan="11" class="py-8 px-4 text-center text-gray-500">
                     <i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...
                   </td>
                 </tr>
@@ -646,8 +744,9 @@
     let currentEntradas = [];
     let currentPage = 1;
     let currentPageEntregas = 1;
+    let accesorioCounter = 0;
 
-    // Datos mock para modo demo (corregidos - sin campos en entrada)
+    // Datos mock para modo demo
     const mockData = {
       entrada: [
         {
@@ -679,7 +778,8 @@
           "SH": "SH-001",
           "Fecha de Salida": "2024-01-20T09:15:00",
           "Supervisor": "Juan Pérez",
-          "Persona que entrega": "Yodeli"
+          "Persona que entrega": "Yodeli",
+          "Cancelada": false
         }
       ]
     };
@@ -735,6 +835,7 @@
       setupImageUpload();
       setCurrentDateTime();
       loadInitialData();
+      addFirstAccesorio(); // Agregar primer accesorio por defecto
     });
 
     function initSupabase() {
@@ -778,28 +879,38 @@
       });
       
       safeSetValue('fecha-entrada', localDateTime);
+      safeSetValue('fecha-entrada-accesorio', localDateTime);
       safeSetValue('fecha-salida', localDateTime);
     }
 
     // ===== MANEJO DE EVENTOS =====
     function setupEventListeners() {
-      // Pestañas
+      // Pestañas principales
       document.querySelectorAll('.tab-link').forEach(link => {
         link.addEventListener('click', handleTabClick);
       });
 
+      // Sub-pestañas de entrada
+      document.querySelectorAll('.sub-tab-link').forEach(link => {
+        link.addEventListener('click', handleSubTabClick);
+      });
+
       // Formularios
       const entradaForm = safeGetElement('entrada-form');
+      const accesorioForm = safeGetElement('accesorio-form');
       const entregaForm = safeGetElement('entrega-form');
       
       if (entradaForm) entradaForm.addEventListener('submit', handleEntradaSubmit);
+      if (accesorioForm) accesorioForm.addEventListener('submit', handleAccesorioSubmit);
       if (entregaForm) entregaForm.addEventListener('submit', handleEntregaSubmit);
 
       // Botones de limpiar
       const limpiarEntrada = safeGetElement('limpiar-formulario-entrada');
+      const limpiarAccesorio = safeGetElement('limpiar-formulario-accesorio');
       const limpiarEntrega = safeGetElement('limpiar-formulario-entrega');
       
       if (limpiarEntrada) limpiarEntrada.addEventListener('click', clearEntradaForm);
+      if (limpiarAccesorio) limpiarAccesorio.addEventListener('click', clearAccesorioForm);
       if (limpiarEntrega) limpiarEntrega.addEventListener('click', clearEntregaForm);
 
       // Botones de cancelar
@@ -808,6 +919,14 @@
       
       if (cancelarEntrada) cancelarEntrada.addEventListener('click', cancelEntradaEdit);
       if (cancelarEntrega) cancelarEntrega.addEventListener('click', cancelEntregaEdit);
+
+      // Selector de accesorio existente
+      const accesorioExistente = safeGetElement('accesorio-existente');
+      if (accesorioExistente) accesorioExistente.addEventListener('change', updateProductInfo);
+
+      // Botón agregar accesorio
+      const agregarAccesorio = safeGetElement('agregar-accesorio');
+      if (agregarAccesorio) agregarAccesorio.addEventListener('click', addAccesorio);
 
       // Filtros
       const aplicarFiltros = safeGetElement('aplicar-filtros');
@@ -834,10 +953,6 @@
       // Actualizar
       const actualizarStock = safeGetElement('actualizar-stock');
       if (actualizarStock) actualizarStock.addEventListener('click', loadStock);
-
-      // Selector de accesorio en entregas
-      const accesorioId = safeGetElement('accesorio-id');
-      if (accesorioId) accesorioId.addEventListener('change', updateStockInfo);
     }
 
     function handleTabClick(e) {
@@ -860,8 +975,31 @@
       if (tabId === 'stock') {
         loadStock();
       } else if (tabId === 'entrega') {
-        loadAccesoriosDropdown();
         loadEntregas();
+      } else if (tabId === 'entrada') {
+        loadAccesoriosExistentes();
+      }
+    }
+
+    function handleSubTabClick(e) {
+      e.preventDefault();
+      const subTabId = this.getAttribute('data-subtab');
+      
+      // Actualizar clases activas
+      document.querySelectorAll('.sub-tab-link').forEach(el => {
+        el.classList.remove('active', 'text-blue-600', 'border-blue-600');
+      });
+      document.querySelectorAll('.sub-tab-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      this.classList.add('active', 'text-blue-600', 'border-blue-600');
+      const subTabContent = safeGetElement(`${subTabId}-subtab`);
+      if (subTabContent) subTabContent.classList.add('active');
+      
+      // Cargar datos según la sub-pestaña
+      if (subTabId === 'accesorio-registrado') {
+        loadAccesoriosExistentes();
       }
     }
 
@@ -953,7 +1091,6 @@
 
     function removeImagePreview(button) {
       button.parentElement.remove();
-      // Limpiar el input de archivos
       safeSetValue('imagenes', '');
     }
 
@@ -1078,7 +1215,6 @@
           button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
         }
         
-        // Recopilar datos con fecha automática del sistema (SIN campos Número de Orden y SH)
         const now = new Date();
         const formData = {
           "Número de Parte": safeGetElement('numero-parte')?.value?.trim()?.toUpperCase() || '',
@@ -1106,7 +1242,6 @@
           formData["Ruta de Imagen"] = uploadResult.data.path;
         }
         
-        // Guardar en base de datos
         const result = isEditing ? 
           await executeQuery('update', 'entrada', formData) :
           await executeQuery('insert', 'entrada', formData);
@@ -1117,7 +1252,8 @@
         
         showToast(isEditing ? 'Entrada actualizada correctamente' : 'Entrada registrada correctamente', 'success');
         clearEntradaForm();
-        loadStock(); // Actualizar stock
+        loadStock();
+        loadAccesoriosExistentes();
         
       } catch (error) {
         console.error('Error al guardar entrada:', error);
@@ -1130,37 +1266,91 @@
       }
     }
 
-    function clearEntradaForm() {
+    async function handleAccesorioSubmit(e) {
+      e.preventDefault();
+      
+      const button = safeGetElement('agregar-cantidad');
+      const originalText = button?.innerHTML;
+      
       try {
-        // Resetear formulario de manera segura
-        const form = safeGetElement('entrada-form');
-        if (form) {
-          form.reset();
+        if (button) {
+          button.disabled = true;
+          button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Agregando...';
         }
         
-        // Limpiar campos específicos de manera segura
-        safeSetValue('entrada-id', '');
+        const numeroParte = safeGetElement('accesorio-existente')?.value;
+        const cantidadAgregar = parseInt(safeGetElement('cantidad-agregar')?.value || 0);
         
-        // Limpiar contenedores de imágenes
+        if (!numeroParte || cantidadAgregar <= 0) {
+          throw new Error('Debe seleccionar un producto y especificar una cantidad válida');
+        }
+        
+        // Buscar el producto existente
+        const productoExistente = currentStock.find(item => item["Número de Parte"] === numeroParte);
+        if (!productoExistente) {
+          throw new Error('Producto no encontrado');
+        }
+        
+        const now = new Date();
+        const formData = {
+          "Número de Parte": numeroParte,
+          "Descripción del accesorio": productoExistente["Descripción del accesorio"],
+          "Ubicación": productoExistente["Ubicación"],
+          "Cantidad ingresada": cantidadAgregar,
+          "Imágenes": false,
+          "Fecha de Entrada": now.toISOString()
+        };
+        
+        const result = await executeQuery('insert', 'entrada', formData);
+        
+        if (result.error) {
+          throw new Error(result.error.message);
+        }
+        
+        showToast(`Se agregaron ${cantidadAgregar} unidades al producto ${numeroParte}`, 'success');
+        clearAccesorioForm();
+        loadStock();
+        loadAccesoriosExistentes();
+        
+      } catch (error) {
+        console.error('Error al agregar cantidad:', error);
+        showToast('Error al agregar cantidad: ' + error.message, 'error');
+      } finally {
+        if (button) {
+          button.disabled = false;
+          button.innerHTML = originalText || '<i class="fas fa-plus mr-2"></i>Agregar Cantidad';
+        }
+      }
+    }
+
+    function clearEntradaForm() {
+      try {
+        const form = safeGetElement('entrada-form');
+        if (form) form.reset();
+        
+        safeSetValue('entrada-id', '');
         safeSetInnerHTML('image-preview-container', '');
         safeSetInnerHTML('existing-images-container', '');
-        
-        // Resetear texto del botón de manera segura
         safeSetInnerHTML('btn-text', 'Guardar Entrada');
-        
-        // Ocultar botón de cancelar
         safeAddClass('cancelar-entrada', 'hidden');
-        
-        // Establecer fecha actual
         setCurrentDateTime();
-        
-        // Limpiar errores del formulario
         clearFormErrors();
-        
-        console.log('Formulario de entrada limpiado correctamente');
       } catch (error) {
         console.error('Error al limpiar formulario de entrada:', error);
-        showToast('Formulario limpiado (con advertencias menores)', 'warning');
+      }
+    }
+
+    function clearAccesorioForm() {
+      try {
+        const form = safeGetElement('accesorio-form');
+        if (form) form.reset();
+        
+        safeSetInnerHTML('stock-actual-info', 'Seleccione un producto para ver el stock');
+        safeAddClass('producto-info', 'hidden');
+        setCurrentDateTime();
+        clearFormErrors();
+      } catch (error) {
+        console.error('Error al limpiar formulario de accesorio:', error);
       }
     }
 
@@ -1180,7 +1370,6 @@
         }
         
         currentEntradas = data;
-        // Calcular stock consolidado
         currentStock = calculateStock(data);
         displayStock(currentStock);
         
@@ -1208,13 +1397,11 @@
           };
         }
         
-        // Calcular stock disponible (entradas - entregas)
         let cantidadDisponible = entrada["Cantidad ingresada"];
         
-        // Restar entregas de este número de parte
         if (currentEntregas && currentEntregas.length > 0) {
           const entregasDelItem = currentEntregas.filter(entrega => 
-            entrega["ID de Accesorio"] === numeroParte
+            entrega["ID de Accesorio"] === numeroParte && !entrega["Cancelada"]
           );
           
           const totalEntregado = entregasDelItem.reduce((total, entrega) => 
@@ -1226,7 +1413,6 @@
         
         stockMap[numeroParte]["Cantidad Disponible"] += cantidadDisponible;
         
-        // Mantener la fecha más reciente
         if (new Date(entrada["Fecha de Entrada"]) > new Date(stockMap[numeroParte]["Última Entrada"])) {
           stockMap[numeroParte]["Última Entrada"] = entrada["Fecha de Entrada"];
           stockMap[numeroParte]["entrada_id"] = entrada.id;
@@ -1308,11 +1494,147 @@
       showToast('Filtros limpiados', 'success');
     }
 
+    // ===== FUNCIONES DE ACCESORIO REGISTRADO =====
+    async function loadAccesoriosExistentes() {
+      const dropdown = safeGetElement('accesorio-existente');
+      if (!dropdown) return;
+      
+      dropdown.innerHTML = '<option value="">Seleccione un producto</option>';
+      
+      if (currentStock && currentStock.length > 0) {
+        currentStock.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item["Número de Parte"];
+          option.textContent = `${item["Número de Parte"]} - ${item["Descripción del accesorio"]} (Stock: ${item["Cantidad Disponible"]})`;
+          dropdown.appendChild(option);
+        });
+      }
+    }
+
+    function updateProductInfo() {
+      const numeroParte = safeGetElement('accesorio-existente')?.value;
+      const stockInfo = safeGetElement('stock-actual-info');
+      const productoInfo = safeGetElement('producto-info');
+      
+      if (!numeroParte) {
+        safeSetInnerHTML('stock-actual-info', 'Seleccione un producto para ver el stock');
+        safeAddClass('producto-info', 'hidden');
+        return;
+      }
+      
+      const producto = currentStock.find(item => item["Número de Parte"] === numeroParte);
+      if (producto) {
+        safeSetInnerHTML('stock-actual-info', `${producto["Cantidad Disponible"]} unidades`);
+        safeSetTextContent('info-descripcion', producto["Descripción del accesorio"]);
+        safeSetTextContent('info-ubicacion', producto["Ubicación"]);
+        safeSetTextContent('info-stock', `${producto["Cantidad Disponible"]} unidades`);
+        safeRemoveClass('producto-info', 'hidden');
+      }
+    }
+
     // ===== FUNCIONES DE ENTREGA =====
+    function addFirstAccesorio() {
+      addAccesorio();
+    }
+
+    function addAccesorio() {
+      accesorioCounter++;
+      const container = safeGetElement('accesorios-container');
+      if (!container) return;
+      
+      const accesorioDiv = document.createElement('div');
+      accesorioDiv.className = 'accesorio-item';
+      accesorioDiv.id = `accesorio-${accesorioCounter}`;
+      
+      accesorioDiv.innerHTML = `
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-medium text-gray-700">Accesorio ${accesorioCounter}</h4>
+          ${accesorioCounter > 1 ? `<button type="button" class="text-red-600 hover:text-red-800" onclick="removeAccesorio(${accesorioCounter})"><i class="fas fa-trash-alt"></i></button>` : ''}
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Accesorio *</label>
+            <select class="accesorio-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required onchange="updateAccesorioStockInfo(${accesorioCounter})">
+              <option value="">Seleccione un accesorio</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Accesorio *</label>
+            <select class="tipo-select w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+              <option value="">Seleccione un tipo</option>
+              <option value="bolsa">Bolsa</option>
+              <option value="gorra">Gorra</option>
+              <option value="guantes">Guantes</option>
+              <option value="pelota">Pelota</option>
+              <option value="accesorio-pequeno">Accesorio pequeño</option>
+              <option value="kit">Kit</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
+            <input type="number" class="cantidad-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" min="1" required>
+            <div class="stock-info text-sm text-gray-500 mt-1"></div>
+          </div>
+        </div>
+      `;
+      
+      container.appendChild(accesorioDiv);
+      loadAccesoriosDropdown(accesorioCounter);
+    }
+
+    function removeAccesorio(id) {
+      const accesorioDiv = safeGetElement(`accesorio-${id}`);
+      if (accesorioDiv) {
+        accesorioDiv.remove();
+      }
+    }
+
+    function loadAccesoriosDropdown(accesorioId) {
+      const accesorioDiv = safeGetElement(`accesorio-${accesorioId}`);
+      if (!accesorioDiv) return;
+      
+      const dropdown = accesorioDiv.querySelector('.accesorio-select');
+      if (!dropdown) return;
+      
+      dropdown.innerHTML = '<option value="">Seleccione un accesorio</option>';
+      
+      if (currentStock && currentStock.length > 0) {
+        currentStock.forEach(item => {
+          if (item["Cantidad Disponible"] > 0) {
+            const option = document.createElement('option');
+            option.value = item["Número de Parte"];
+            option.textContent = `${item["Número de Parte"]} - ${item["Descripción del accesorio"]} (${item["Cantidad Disponible"]} disponibles)`;
+            dropdown.appendChild(option);
+          }
+        });
+      }
+    }
+
+    function updateAccesorioStockInfo(accesorioId) {
+      const accesorioDiv = safeGetElement(`accesorio-${accesorioId}`);
+      if (!accesorioDiv) return;
+      
+      const dropdown = accesorioDiv.querySelector('.accesorio-select');
+      const stockInfo = accesorioDiv.querySelector('.stock-info');
+      
+      if (!dropdown || !stockInfo) return;
+      
+      const numeroParte = dropdown.value;
+      
+      if (numeroParte) {
+        const stockItem = currentStock.find(item => item["Número de Parte"] === numeroParte);
+        if (stockItem) {
+          stockInfo.textContent = `Stock disponible: ${stockItem["Cantidad Disponible"]} unidades`;
+          stockInfo.className = stockItem["Cantidad Disponible"] <= 5 ? 'stock-info text-sm text-red-600 mt-1' : 'stock-info text-sm text-green-600 mt-1';
+        }
+      } else {
+        stockInfo.textContent = '';
+      }
+    }
+
     async function handleEntregaSubmit(e) {
       e.preventDefault();
       
-      const isEditing = safeGetElement('entrega-id')?.value;
       const button = safeGetElement('registrar-salida');
       const originalText = button?.innerHTML;
       
@@ -1322,41 +1644,73 @@
           button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
         }
         
+        const numeroOrden = safeGetElement('numero-orden')?.value?.trim();
+        const sh = safeGetElement('sh')?.value?.trim();
+        const supervisor = safeGetElement('supervisor')?.value;
+        const personaEntrega = safeGetElement('persona-entrega')?.value;
+        
+        if (!numeroOrden || !supervisor || !personaEntrega) {
+          throw new Error('Debe completar todos los campos obligatorios');
+        }
+        
+        // Recopilar accesorios
+        const accesorios = [];
+        const accesoriosContainer = safeGetElement('accesorios-container');
+        const accesorioItems = accesoriosContainer.querySelectorAll('.accesorio-item');
+        
+        accesorioItems.forEach(item => {
+          const accesorioSelect = item.querySelector('.accesorio-select');
+          const tipoSelect = item.querySelector('.tipo-select');
+          const cantidadInput = item.querySelector('.cantidad-input');
+          
+          if (accesorioSelect.value && tipoSelect.value && cantidadInput.value) {
+            accesorios.push({
+              "ID de Accesorio": accesorioSelect.value,
+              "Tipo de Accesorio": tipoSelect.value,
+              "Cantidad": parseInt(cantidadInput.value)
+            });
+          }
+        });
+        
+        if (accesorios.length === 0) {
+          throw new Error('Debe agregar al menos un accesorio');
+        }
+        
+        // Validar stock para todos los accesorios
+        for (const accesorio of accesorios) {
+          const stockItem = currentStock.find(item => item["Número de Parte"] === accesorio["ID de Accesorio"]);
+          if (!stockItem || stockItem["Cantidad Disponible"] < accesorio["Cantidad"]) {
+            throw new Error(`Stock insuficiente para ${accesorio["ID de Accesorio"]}`);
+          }
+        }
+        
         const now = new Date();
-        const formData = {
-          "ID de Accesorio": safeGetElement('accesorio-id')?.value || '',
-          "Cantidad": parseInt(safeGetElement('cantidad-salida')?.value || 0),
-          "Tipo de Accesorio": safeGetElement('tipo-accesorio')?.value || '',
-          "Número de Orden": safeGetElement('numero-orden')?.value?.trim() || '', // AHORA AQUÍ
-          "SH": safeGetElement('sh')?.value?.trim() || '', // AHORA AQUÍ
-          "Fecha de Salida": now.toISOString(),
-          "Supervisor": safeGetElement('supervisor')?.value || '',
-          "Persona que entrega": safeGetElement('persona-entrega')?.value || ''
-        };
         
-        if (isEditing) {
-          formData.id = parseInt(isEditing);
+        // Registrar cada accesorio como una entrega separada
+        for (const accesorio of accesorios) {
+          const formData = {
+            "ID de Accesorio": accesorio["ID de Accesorio"],
+            "Cantidad": accesorio["Cantidad"],
+            "Tipo de Accesorio": accesorio["Tipo de Accesorio"],
+            "Número de Orden": numeroOrden,
+            "SH": sh || '',
+            "Fecha de Salida": now.toISOString(),
+            "Supervisor": supervisor,
+            "Persona que entrega": personaEntrega,
+            "Cancelada": false
+          };
+          
+          const result = await executeQuery('insert', 'entrega', formData);
+          
+          if (result.error) {
+            throw new Error(result.error.message);
+          }
         }
         
-        // Validar stock disponible
-        const stockItem = currentStock.find(item => item["Número de Parte"] === formData["ID de Accesorio"]);
-        if (!stockItem || stockItem["Cantidad Disponible"] < formData["Cantidad"]) {
-          throw new Error('Stock insuficiente para realizar la entrega');
-        }
-        
-        const result = isEditing ? 
-          await executeQuery('update', 'entrega', formData) :
-          await executeQuery('insert', 'entrega', formData);
-        
-        if (result.error) {
-          throw new Error(result.error.message);
-        }
-        
-        showToast(isEditing ? 'Entrega actualizada correctamente' : 'Entrega registrada correctamente', 'success');
+        showToast(`Orden ${numeroOrden} registrada correctamente con ${accesorios.length} accesorio(s)`, 'success');
         clearEntregaForm();
-        loadStock(); // Actualizar stock (esto recalculará automáticamente)
-        loadEntregas(); // Actualizar entregas
-        loadAccesoriosDropdown(); // Actualizar dropdown
+        loadStock();
+        loadEntregas();
         
       } catch (error) {
         console.error('Error al guardar entrega:', error);
@@ -1371,34 +1725,24 @@
 
     function clearEntregaForm() {
       try {
-        // Resetear formulario de manera segura
         const form = safeGetElement('entrega-form');
-        if (form) {
-          form.reset();
-        }
+        if (form) form.reset();
         
-        // Limpiar campos específicos
         safeSetValue('entrega-id', '');
-        
-        // Resetear texto del botón
         safeSetInnerHTML('btn-entrega-text', 'Registrar Entrega');
-        
-        // Ocultar botón de cancelar
         safeAddClass('cancelar-entrega', 'hidden');
-        
-        // Limpiar información de stock
-        safeSetTextContent('stock-disponible', '');
-        
-        // Establecer fecha actual
         setCurrentDateTime();
-        
-        // Limpiar errores del formulario
         clearFormErrors();
         
-        console.log('Formulario de entrega limpiado correctamente');
+        // Limpiar accesorios y agregar uno nuevo
+        const container = safeGetElement('accesorios-container');
+        if (container) {
+          container.innerHTML = '';
+          accesorioCounter = 0;
+          addFirstAccesorio();
+        }
       } catch (error) {
         console.error('Error al limpiar formulario de entrega:', error);
-        showToast('Formulario limpiado (con advertencias menores)', 'warning');
       }
     }
 
@@ -1408,7 +1752,7 @@
 
     async function loadEntregas() {
       try {
-        safeSetInnerHTML('entregas-items', '<tr><td colspan="10" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>');
+        safeSetInnerHTML('entregas-items', '<tr><td colspan="11" class="py-8 px-4 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Cargando entregas...</td></tr>');
         
         const { data, error } = await executeQuery('select', 'entrega');
         
@@ -1432,14 +1776,14 @@
       entregasItems.innerHTML = '';
       
       if (entregas.length === 0) {
-        entregasItems.innerHTML = '<tr><td colspan="10" class="py-8 px-4 text-center text-gray-500">No hay registros de entregas</td></tr>';
+        entregasItems.innerHTML = '<tr><td colspan="11" class="py-8 px-4 text-center text-gray-500">No hay registros de entregas</td></tr>';
         updateEntregasPagination(0, 0);
         return;
       }
       
       entregas.forEach(item => {
         const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 transition-colors';
+        row.className = item["Cancelada"] ? 'canceled-row' : 'hover:bg-gray-50 transition-colors';
         
         const fecha = new Date(item["Fecha de Salida"]).toLocaleDateString('es-ES', {
           year: 'numeric',
@@ -1448,6 +1792,22 @@
           hour: '2-digit',
           minute: '2-digit'
         });
+        
+        const estado = item["Cancelada"] ? 
+          '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">CANCELADA</span>' :
+          '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">ACTIVA</span>';
+        
+        const acciones = item["Cancelada"] ? 
+          '<span class="text-gray-400 text-sm">Orden cancelada</span>' :
+          `<button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editEntrega(${item.id})" title="Editar">
+             <i class="fas fa-edit"></i>
+           </button>
+           <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteEntrega(${item.id})" title="Eliminar">
+             <i class="fas fa-trash-alt"></i>
+           </button>
+           <button class="text-orange-600 hover:text-orange-800 mx-1 p-1" onclick="confirmCancelOrder(${item.id})" title="Cancelar Orden">
+             <i class="fas fa-ban"></i>
+           </button>`;
         
         row.innerHTML = `
           <td class="py-3 px-4 border-b font-medium">${item.id}</td>
@@ -1459,14 +1819,8 @@
           <td class="py-3 px-4 border-b">${fecha}</td>
           <td class="py-3 px-4 border-b">${item["Supervisor"]}</td>
           <td class="py-3 px-4 border-b">${item["Persona que entrega"]}</td>
-          <td class="py-3 px-4 border-b text-center">
-            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editEntrega(${item.id})" title="Editar">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteEntrega(${item.id})" title="Eliminar">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
+          <td class="py-3 px-4 border-b text-center">${estado}</td>
+          <td class="py-3 px-4 border-b text-center">${acciones}</td>
         `;
         entregasItems.appendChild(row);
       });
@@ -1477,39 +1831,6 @@
     function updateEntregasPagination(showing, total) {
       safeSetTextContent('entregas-showing', showing);
       safeSetTextContent('entregas-total', total);
-    }
-
-    function loadAccesoriosDropdown() {
-      const dropdown = safeGetElement('accesorio-id');
-      if (!dropdown) return;
-      
-      dropdown.innerHTML = '<option value="">Seleccione un accesorio</option>';
-      
-      currentStock.forEach(item => {
-        if (item["Cantidad Disponible"] > 0) {
-          const option = document.createElement('option');
-          option.value = item["Número de Parte"];
-          option.textContent = `${item["Número de Parte"]} - ${item["Descripción del accesorio"]} (${item["Cantidad Disponible"]} disponibles)`;
-          dropdown.appendChild(option);
-        }
-      });
-    }
-
-    function updateStockInfo() {
-      const accesorioId = safeGetElement('accesorio-id')?.value;
-      const stockInfo = safeGetElement('stock-disponible');
-      
-      if (!stockInfo) return;
-      
-      if (accesorioId) {
-        const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioId);
-        if (stockItem) {
-          stockInfo.textContent = `Stock disponible: ${stockItem["Cantidad Disponible"]} unidades`;
-          stockInfo.className = stockItem["Cantidad Disponible"] <= 5 ? 'text-sm text-red-600 mt-1' : 'text-sm text-green-600 mt-1';
-        }
-      } else {
-        stockInfo.textContent = '';
-      }
     }
 
     function applyEntregasFilters() {
@@ -1546,31 +1867,29 @@
 
     // ===== FUNCIONES DE EDICIÓN Y ELIMINACIÓN =====
     function editStock(entradaId) {
-      // Buscar la entrada específica por ID
       const entrada = currentEntradas.find(e => e.id === entradaId);
       if (!entrada) {
         showToast('No se encontró la entrada para editar', 'error');
         return;
       }
       
-      // Llenar formulario (SIN campos Número de Orden y SH)
       safeSetValue('entrada-id', entrada.id);
       safeSetValue('numero-parte', entrada["Número de Parte"]);
       safeSetValue('descripcion', entrada["Descripción del accesorio"]);
       safeSetValue('ubicacion', entrada["Ubicación"]);
       safeSetValue('cantidad', entrada["Cantidad ingresada"]);
       
-      // La fecha se mantiene como solo lectura
       const fecha = new Date(entrada["Fecha de Entrada"]);
       safeSetValue('fecha-entrada', fecha.toLocaleString('es-ES'));
       
-      // Cambiar a modo edición
       safeSetTextContent('btn-text', 'Actualizar Entrada');
       safeRemoveClass('cancelar-entrada', 'hidden');
       
-      // Cambiar a pestaña de entrada
       const entradaTab = document.querySelector('.tab-link[data-tab="entrada"]');
       if (entradaTab) entradaTab.click();
+      
+      const nuevoProductoTab = document.querySelector('.sub-tab-link[data-subtab="nuevo-producto"]');
+      if (nuevoProductoTab) nuevoProductoTab.click();
       
       showToast('Editando entrada. Modifique los campos y guarde los cambios.', 'info');
     }
@@ -1589,7 +1908,6 @@
       
       if (confirmed.isConfirmed) {
         try {
-          // Eliminar todas las entradas con este número de parte
           const entradas = currentEntradas.filter(e => e["Número de Parte"] === numeroParte);
           
           for (const entrada of entradas) {
@@ -1598,6 +1916,7 @@
           
           showToast('Stock eliminado correctamente', 'success');
           loadStock();
+          loadAccesoriosExistentes();
         } catch (error) {
           console.error('Error al eliminar stock:', error);
           showToast('Error al eliminar stock', 'error');
@@ -1609,26 +1928,8 @@
       const entrega = currentEntregas.find(e => e.id === id);
       if (!entrega) return;
       
-      // Llenar formulario (CON campos Número de Orden y SH)
-      safeSetValue('entrega-id', entrega.id);
-      safeSetValue('accesorio-id', entrega["ID de Accesorio"]);
-      safeSetValue('tipo-accesorio', entrega["Tipo de Accesorio"]);
-      safeSetValue('cantidad-salida', entrega["Cantidad"]);
-      safeSetValue('numero-orden', entrega["Número de Orden"] || '');
-      safeSetValue('sh', entrega["SH"] || '');
-      safeSetValue('supervisor', entrega["Supervisor"]);
-      safeSetValue('persona-entrega', entrega["Persona que entrega"]);
-      
-      // La fecha se mantiene como solo lectura
-      const fecha = new Date(entrega["Fecha de Salida"]);
-      safeSetValue('fecha-salida', fecha.toLocaleString('es-ES'));
-      
-      // Cambiar a modo edición
-      safeSetTextContent('btn-entrega-text', 'Actualizar Entrega');
-      safeRemoveClass('cancelar-entrega', 'hidden');
-      
-      updateStockInfo();
-      showToast('Editando entrega. Modifique los campos y guarde los cambios.', 'info');
+      // Implementar edición de entrega individual
+      showToast('Función de edición de entrega individual en desarrollo', 'info');
     }
 
     async function confirmDeleteEntrega(id) {
@@ -1653,11 +1954,51 @@
           
           showToast('Entrega eliminada correctamente', 'success');
           loadEntregas();
-          loadStock(); // Actualizar stock
-          loadAccesoriosDropdown(); // Actualizar dropdown
+          loadStock();
         } catch (error) {
           console.error('Error al eliminar entrega:', error);
           showToast('Error al eliminar entrega', 'error');
+        }
+      }
+    }
+
+    async function confirmCancelOrder(id) {
+      const confirmed = await Swal.fire({
+        title: '¿Cancelar orden?',
+        text: "Se devolverá el stock y la orden quedará marcada como cancelada",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#f59e0b',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, cancelar orden',
+        cancelButtonText: 'No cancelar'
+      });
+      
+      if (confirmed.isConfirmed) {
+        try {
+          const entrega = currentEntregas.find(e => e.id === id);
+          if (!entrega) {
+            throw new Error('Entrega no encontrada');
+          }
+          
+          // Marcar como cancelada
+          const updateData = {
+            id: id,
+            "Cancelada": true
+          };
+          
+          const { error } = await executeQuery('update', 'entrega', updateData);
+          
+          if (error) {
+            throw new Error(error.message);
+          }
+          
+          showToast(`Orden cancelada. Stock de ${entrega["Cantidad"]} unidades devuelto para ${entrega["ID de Accesorio"]}`, 'success');
+          loadEntregas();
+          loadStock(); // Recalcular stock
+        } catch (error) {
+          console.error('Error al cancelar orden:', error);
+          showToast('Error al cancelar orden: ' + error.message, 'error');
         }
       }
     }
@@ -1790,8 +2131,9 @@
     }
 
     async function loadInitialData() {
-      await loadEntregas(); // Cargar entregas primero
-      await loadStock(); // Luego cargar stock (que usa las entregas para calcular)
+      await loadEntregas();
+      await loadStock();
+      loadAccesoriosExistentes();
     }
 
     // Hacer funciones globales
@@ -1799,9 +2141,12 @@
     window.confirmDeleteStock = confirmDeleteStock;
     window.editEntrega = editEntrega;
     window.confirmDeleteEntrega = confirmDeleteEntrega;
+    window.confirmCancelOrder = confirmCancelOrder;
     window.showImageModal = showImageModal;
     window.closeImageModal = closeImageModal;
     window.removeImagePreview = removeImagePreview;
+    window.removeAccesorio = removeAccesorio;
+    window.updateAccesorioStockInfo = updateAccesorioStockInfo;
   </script>
 </body>
 </html>
