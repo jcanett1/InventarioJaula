@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Corregida</title>
+  <title>Sistema de Gestión de Inventario - Versión Final Completa</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -176,6 +176,12 @@
     .canceled-row:hover {
       background-color: #fecaca !important;
     }
+    .edited-row {
+      background-color: #fef3c7 !important;
+    }
+    .edited-row:hover {
+      background-color: #fde68a !important;
+    }
     .accesorio-item {
       border: 1px solid #e5e7eb;
       border-radius: 8px;
@@ -207,7 +213,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Corregida</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Final Completa</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -745,6 +751,7 @@
     let currentPage = 1;
     let currentPageEntregas = 1;
     let accesorioCounter = 0;
+    let isEditingEntrega = false;
 
     // Datos mock para modo demo
     const mockData = {
@@ -779,7 +786,8 @@
           "Fecha de Salida": "2024-01-20T09:15:00",
           "Supervisor": "Juan Pérez",
           "Persona que entrega": "Yodeli",
-          "Cancelada": false
+          "Cancelada": false,
+          "Editada": false
         }
       ]
     };
@@ -975,7 +983,6 @@
         loadStock();
       } else if (tabId === 'entrega') {
         loadEntregas();
-        // CORRECCIÓN: Cargar accesorios cuando se abre la pestaña de entregas
         loadAllAccesoriosDropdowns();
       } else if (tabId === 'entrada') {
         loadAccesoriosExistentes();
@@ -1374,7 +1381,6 @@
         currentStock = calculateStock(data);
         displayStock(currentStock);
         
-        // CORRECCIÓN: Actualizar dropdowns después de cargar stock
         loadAllAccesoriosDropdowns();
         
       } catch (error) {
@@ -1537,12 +1543,9 @@
     }
 
     // ===== FUNCIONES DE ENTREGA =====
-    // CORRECCIÓN: Función para cargar todos los dropdowns de accesorios
     function loadAllAccesoriosDropdowns() {
-      // Cargar dropdown de accesorio existente
       loadAccesoriosExistentes();
       
-      // Cargar todos los dropdowns de accesorios en entregas
       const accesoriosContainer = safeGetElement('accesorios-container');
       if (accesoriosContainer) {
         const dropdowns = accesoriosContainer.querySelectorAll('.accesorio-select');
@@ -1659,6 +1662,7 @@
           button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Registrando...';
         }
         
+        const entregaId = safeGetElement('entrega-id')?.value;
         const numeroOrden = safeGetElement('numero-orden')?.value?.trim();
         const sh = safeGetElement('sh')?.value?.trim();
         const supervisor = safeGetElement('supervisor')?.value;
@@ -1668,61 +1672,111 @@
           throw new Error('Debe completar todos los campos obligatorios');
         }
         
-        // Recopilar accesorios
-        const accesorios = [];
-        const accesoriosContainer = safeGetElement('accesorios-container');
-        const accesorioItems = accesoriosContainer.querySelectorAll('.accesorio-item');
-        
-        accesorioItems.forEach(item => {
-          const accesorioSelect = item.querySelector('.accesorio-select');
-          const tipoSelect = item.querySelector('.tipo-select');
-          const cantidadInput = item.querySelector('.cantidad-input');
+        if (isEditingEntrega && entregaId) {
+          // Modo edición - solo actualizar una entrega específica
+          const accesoriosContainer = safeGetElement('accesorios-container');
+          const firstAccesorio = accesoriosContainer.querySelector('.accesorio-item');
           
-          if (accesorioSelect.value && tipoSelect.value && cantidadInput.value) {
-            accesorios.push({
-              "ID de Accesorio": accesorioSelect.value,
-              "Tipo de Accesorio": tipoSelect.value,
-              "Cantidad": parseInt(cantidadInput.value)
-            });
+          if (!firstAccesorio) {
+            throw new Error('Debe tener al menos un accesorio');
           }
-        });
-        
-        if (accesorios.length === 0) {
-          throw new Error('Debe agregar al menos un accesorio');
-        }
-        
-        // Validar stock para todos los accesorios
-        for (const accesorio of accesorios) {
-          const stockItem = currentStock.find(item => item["Número de Parte"] === accesorio["ID de Accesorio"]);
-          if (!stockItem || stockItem["Cantidad Disponible"] < accesorio["Cantidad"]) {
-            throw new Error(`Stock insuficiente para ${accesorio["ID de Accesorio"]}`);
+          
+          const accesorioSelect = firstAccesorio.querySelector('.accesorio-select');
+          const tipoSelect = firstAccesorio.querySelector('.tipo-select');
+          const cantidadInput = firstAccesorio.querySelector('.cantidad-input');
+          
+          if (!accesorioSelect.value || !tipoSelect.value || !cantidadInput.value) {
+            throw new Error('Debe completar todos los campos del accesorio');
           }
-        }
-        
-        const now = new Date();
-        
-        // Registrar cada accesorio como una entrega separada
-        for (const accesorio of accesorios) {
-          const formData = {
-            "ID de Accesorio": accesorio["ID de Accesorio"],
-            "Cantidad": accesorio["Cantidad"],
-            "Tipo de Accesorio": accesorio["Tipo de Accesorio"],
+          
+          // Validar stock
+          const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioSelect.value);
+          const entregaOriginal = currentEntregas.find(e => e.id === parseInt(entregaId));
+          const stockDisponible = stockItem ? stockItem["Cantidad Disponible"] + (entregaOriginal ? entregaOriginal["Cantidad"] : 0) : 0;
+          
+          if (stockDisponible < parseInt(cantidadInput.value)) {
+            throw new Error(`Stock insuficiente para ${accesorioSelect.value}. Disponible: ${stockDisponible}`);
+          }
+          
+          const updateData = {
+            id: parseInt(entregaId),
+            "ID de Accesorio": accesorioSelect.value,
+            "Cantidad": parseInt(cantidadInput.value),
+            "Tipo de Accesorio": tipoSelect.value,
             "Número de Orden": numeroOrden,
             "SH": sh || '',
-            "Fecha de Salida": now.toISOString(),
             "Supervisor": supervisor,
             "Persona que entrega": personaEntrega,
-            "Cancelada": false
+            "Editada": true
           };
           
-          const result = await executeQuery('insert', 'entrega', formData);
+          const result = await executeQuery('update', 'entrega', updateData);
           
           if (result.error) {
             throw new Error(result.error.message);
           }
+          
+          showToast('Entrega actualizada correctamente', 'success');
+          
+        } else {
+          // Modo creación - registrar nuevas entregas
+          const accesorios = [];
+          const accesoriosContainer = safeGetElement('accesorios-container');
+          const accesorioItems = accesoriosContainer.querySelectorAll('.accesorio-item');
+          
+          accesorioItems.forEach(item => {
+            const accesorioSelect = item.querySelector('.accesorio-select');
+            const tipoSelect = item.querySelector('.tipo-select');
+            const cantidadInput = item.querySelector('.cantidad-input');
+            
+            if (accesorioSelect.value && tipoSelect.value && cantidadInput.value) {
+              accesorios.push({
+                "ID de Accesorio": accesorioSelect.value,
+                "Tipo de Accesorio": tipoSelect.value,
+                "Cantidad": parseInt(cantidadInput.value)
+              });
+            }
+          });
+          
+          if (accesorios.length === 0) {
+            throw new Error('Debe agregar al menos un accesorio');
+          }
+          
+          // Validar stock para todos los accesorios
+          for (const accesorio of accesorios) {
+            const stockItem = currentStock.find(item => item["Número de Parte"] === accesorio["ID de Accesorio"]);
+            if (!stockItem || stockItem["Cantidad Disponible"] < accesorio["Cantidad"]) {
+              throw new Error(`Stock insuficiente para ${accesorio["ID de Accesorio"]}`);
+            }
+          }
+          
+          const now = new Date();
+          
+          // Registrar cada accesorio como una entrega separada
+          for (const accesorio of accesorios) {
+            const formData = {
+              "ID de Accesorio": accesorio["ID de Accesorio"],
+              "Cantidad": accesorio["Cantidad"],
+              "Tipo de Accesorio": accesorio["Tipo de Accesorio"],
+              "Número de Orden": numeroOrden,
+              "SH": sh || '',
+              "Fecha de Salida": now.toISOString(),
+              "Supervisor": supervisor,
+              "Persona que entrega": personaEntrega,
+              "Cancelada": false,
+              "Editada": false
+            };
+            
+            const result = await executeQuery('insert', 'entrega', formData);
+            
+            if (result.error) {
+              throw new Error(result.error.message);
+            }
+          }
+          
+          showToast(`Orden ${numeroOrden} registrada correctamente con ${accesorios.length} accesorio(s)`, 'success');
         }
         
-        showToast(`Orden ${numeroOrden} registrada correctamente con ${accesorios.length} accesorio(s)`, 'success');
         clearEntregaForm();
         loadStock();
         loadEntregas();
@@ -1749,6 +1803,9 @@
         setCurrentDateTime();
         clearFormErrors();
         
+        // Resetear estado de edición
+        isEditingEntrega = false;
+        
         // Limpiar accesorios y agregar uno nuevo
         const container = safeGetElement('accesorios-container');
         if (container) {
@@ -1765,9 +1822,7 @@
       clearEntregaForm();
     }
 
-    // CORRECCIÓN: Función mejorada para agregar el primer accesorio
     function addFirstAccesorio() {
-      // Esperar un poco para asegurar que el stock esté cargado
       setTimeout(() => {
         addAccesorio();
       }, 100);
@@ -1806,7 +1861,15 @@
       
       entregas.forEach(item => {
         const row = document.createElement('tr');
-        row.className = item["Cancelada"] ? 'canceled-row' : 'hover:bg-gray-50 transition-colors';
+        
+        // Determinar clase de fila según estado
+        if (item["Cancelada"]) {
+          row.className = 'canceled-row';
+        } else if (item["Editada"]) {
+          row.className = 'edited-row';
+        } else {
+          row.className = 'hover:bg-gray-50 transition-colors';
+        }
         
         const fecha = new Date(item["Fecha de Salida"]).toLocaleDateString('es-ES', {
           year: 'numeric',
@@ -1816,9 +1879,15 @@
           minute: '2-digit'
         });
         
-        const estado = item["Cancelada"] ? 
-          '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">CANCELADA</span>' :
-          '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">ACTIVA</span>';
+        // Determinar estado con indicadores visuales
+        let estado = '';
+        if (item["Cancelada"]) {
+          estado = '<span class="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">CANCELADA</span>';
+        } else if (item["Editada"]) {
+          estado = '<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">EDITADA</span>';
+        } else {
+          estado = '<span class="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">ACTIVA</span>';
+        }
         
         const acciones = item["Cancelada"] ? 
           '<span class="text-gray-400 text-sm">Orden cancelada</span>' :
@@ -1917,6 +1986,70 @@
       showToast('Editando entrada. Modifique los campos y guarde los cambios.', 'info');
     }
 
+    // ===== NUEVA FUNCIÓN DE EDITAR ENTREGA =====
+    function editEntrega(id) {
+      const entrega = currentEntregas.find(e => e.id === id);
+      if (!entrega) {
+        showToast('No se encontró la entrega para editar', 'error');
+        return;
+      }
+      
+      if (entrega["Cancelada"]) {
+        showToast('No se puede editar una orden cancelada', 'error');
+        return;
+      }
+      
+      // Establecer modo edición
+      isEditingEntrega = true;
+      
+      // Llenar formulario con datos de la entrega
+      safeSetValue('entrega-id', entrega.id);
+      safeSetValue('numero-orden', entrega["Número de Orden"] || '');
+      safeSetValue('sh', entrega["SH"] || '');
+      safeSetValue('supervisor', entrega["Supervisor"]);
+      safeSetValue('persona-entrega', entrega["Persona que entrega"]);
+      
+      const fecha = new Date(entrega["Fecha de Salida"]);
+      safeSetValue('fecha-salida', fecha.toLocaleString('es-ES'));
+      
+      // Limpiar contenedor de accesorios
+      const container = safeGetElement('accesorios-container');
+      if (container) {
+        container.innerHTML = '';
+        accesorioCounter = 0;
+      }
+      
+      // Agregar el accesorio de la entrega
+      addAccesorio();
+      
+      // Esperar a que se cree el accesorio y luego llenarlo
+      setTimeout(() => {
+        const accesorioDiv = safeGetElement('accesorio-1');
+        if (accesorioDiv) {
+          const accesorioSelect = accesorioDiv.querySelector('.accesorio-select');
+          const tipoSelect = accesorioDiv.querySelector('.tipo-select');
+          const cantidadInput = accesorioDiv.querySelector('.cantidad-input');
+          
+          if (accesorioSelect) accesorioSelect.value = entrega["ID de Accesorio"];
+          if (tipoSelect) tipoSelect.value = entrega["Tipo de Accesorio"];
+          if (cantidadInput) cantidadInput.value = entrega["Cantidad"];
+          
+          // Actualizar información de stock
+          updateAccesorioStockInfo(1);
+        }
+      }, 200);
+      
+      // Cambiar texto del botón y mostrar cancelar
+      safeSetInnerHTML('btn-entrega-text', 'Actualizar Entrega');
+      safeRemoveClass('cancelar-entrega', 'hidden');
+      
+      // Cambiar a la pestaña de entregas
+      const entregaTab = document.querySelector('.tab-link[data-tab="entrega"]');
+      if (entregaTab) entregaTab.click();
+      
+      showToast('Editando entrega. Modifique los campos y guarde los cambios.', 'info');
+    }
+
     async function confirmDeleteStock(numeroParte) {
       const confirmed = await Swal.fire({
         title: '¿Estás seguro?',
@@ -1945,14 +2078,6 @@
           showToast('Error al eliminar stock', 'error');
         }
       }
-    }
-
-    function editEntrega(id) {
-      const entrega = currentEntregas.find(e => e.id === id);
-      if (!entrega) return;
-      
-      // Implementar edición de entrega individual
-      showToast('Función de edición de entrega individual en desarrollo', 'info');
     }
 
     async function confirmDeleteEntrega(id) {
@@ -1985,29 +2110,53 @@
       }
     }
 
+    // ===== NUEVA FUNCIÓN DE CANCELAR ORDEN CON MOTIVO =====
     async function confirmCancelOrder(id) {
-      const confirmed = await Swal.fire({
-        title: '¿Cancelar orden?',
-        text: "Se devolverá el stock y la orden quedará marcada como cancelada",
+      const entrega = currentEntregas.find(e => e.id === id);
+      if (!entrega) {
+        showToast('Entrega no encontrada', 'error');
+        return;
+      }
+      
+      // Solicitar motivo de cancelación
+      const { value: motivo } = await Swal.fire({
+        title: 'Cancelar Orden',
+        html: `
+          <p class="mb-4">Se devolverá el stock y la orden quedará marcada como cancelada</p>
+          <p class="mb-2 font-medium">Motivo de cancelación: *</p>
+          <textarea id="motivo-cancelacion" class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Ingrese el motivo de la cancelación..." required></textarea>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#f59e0b',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Sí, cancelar orden',
-        cancelButtonText: 'No cancelar'
-      });
-      
-      if (confirmed.isConfirmed) {
-        try {
-          const entrega = currentEntregas.find(e => e.id === id);
-          if (!entrega) {
-            throw new Error('Entrega no encontrada');
+        cancelButtonText: 'No cancelar',
+        preConfirm: () => {
+          const motivoInput = document.getElementById('motivo-cancelacion');
+          const motivoValue = motivoInput.value.trim();
+          
+          if (!motivoValue) {
+            Swal.showValidationMessage('Debe ingresar un motivo de cancelación');
+            return false;
           }
           
-          // Marcar como cancelada
+          if (motivoValue.length < 10) {
+            Swal.showValidationMessage('El motivo debe tener al menos 10 caracteres');
+            return false;
+          }
+          
+          return motivoValue;
+        }
+      });
+      
+      if (motivo) {
+        try {
+          // Marcar como cancelada con motivo
           const updateData = {
             id: id,
-            "Cancelada": true
+            "Cancelada": true,
+            "Motivo de Cancelación": motivo
           };
           
           const { error } = await executeQuery('update', 'entrega', updateData);
@@ -2153,16 +2302,11 @@
       }
     }
 
-    // CORRECCIÓN: Función mejorada para cargar datos iniciales
     async function loadInitialData() {
       try {
-        // Cargar entregas primero
         await loadEntregas();
-        // Luego cargar stock (que depende de entregas para calcular correctamente)
         await loadStock();
-        // Finalmente cargar dropdowns
         loadAccesoriosExistentes();
-        // Agregar primer accesorio después de que todo esté cargado
         addFirstAccesorio();
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
