@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Mejorada Completa</title>
+  <title>Sistema de Gestión de Inventario - Versión Corregida</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -207,7 +207,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Mejorada Completa</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Corregida</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -835,7 +835,6 @@
       setupImageUpload();
       setCurrentDateTime();
       loadInitialData();
-      addFirstAccesorio(); // Agregar primer accesorio por defecto
     });
 
     function initSupabase() {
@@ -976,6 +975,8 @@
         loadStock();
       } else if (tabId === 'entrega') {
         loadEntregas();
+        // CORRECCIÓN: Cargar accesorios cuando se abre la pestaña de entregas
+        loadAllAccesoriosDropdowns();
       } else if (tabId === 'entrada') {
         loadAccesoriosExistentes();
       }
@@ -1373,6 +1374,9 @@
         currentStock = calculateStock(data);
         displayStock(currentStock);
         
+        // CORRECCIÓN: Actualizar dropdowns después de cargar stock
+        loadAllAccesoriosDropdowns();
+        
       } catch (error) {
         console.error('Error al cargar stock:', error);
         showToast('Error al cargar inventario', 'error');
@@ -1533,8 +1537,19 @@
     }
 
     // ===== FUNCIONES DE ENTREGA =====
-    function addFirstAccesorio() {
-      addAccesorio();
+    // CORRECCIÓN: Función para cargar todos los dropdowns de accesorios
+    function loadAllAccesoriosDropdowns() {
+      // Cargar dropdown de accesorio existente
+      loadAccesoriosExistentes();
+      
+      // Cargar todos los dropdowns de accesorios en entregas
+      const accesoriosContainer = safeGetElement('accesorios-container');
+      if (accesoriosContainer) {
+        const dropdowns = accesoriosContainer.querySelectorAll('.accesorio-select');
+        dropdowns.forEach((dropdown, index) => {
+          loadAccesoriosDropdown(index + 1);
+        });
+      }
     }
 
     function addAccesorio() {
@@ -1748,6 +1763,14 @@
 
     function cancelEntregaEdit() {
       clearEntregaForm();
+    }
+
+    // CORRECCIÓN: Función mejorada para agregar el primer accesorio
+    function addFirstAccesorio() {
+      // Esperar un poco para asegurar que el stock esté cargado
+      setTimeout(() => {
+        addAccesorio();
+      }, 100);
     }
 
     async function loadEntregas() {
@@ -2130,10 +2153,21 @@
       }
     }
 
+    // CORRECCIÓN: Función mejorada para cargar datos iniciales
     async function loadInitialData() {
-      await loadEntregas();
-      await loadStock();
-      loadAccesoriosExistentes();
+      try {
+        // Cargar entregas primero
+        await loadEntregas();
+        // Luego cargar stock (que depende de entregas para calcular correctamente)
+        await loadStock();
+        // Finalmente cargar dropdowns
+        loadAccesoriosExistentes();
+        // Agregar primer accesorio después de que todo esté cargado
+        addFirstAccesorio();
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+        showToast('Error al cargar datos iniciales', 'error');
+      }
     }
 
     // Hacer funciones globales
