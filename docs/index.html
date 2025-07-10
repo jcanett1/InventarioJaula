@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Versión Final Completa</title>
+  <title>Sistema de Gestión de Inventario - Stock Corregido</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -213,7 +213,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas - Versión Final Completa</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Stock Corregido</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -1378,7 +1378,7 @@
         }
         
         currentEntradas = data;
-        currentStock = calculateStock(data);
+        currentStock = calculateStock(currentEntradas, currentEntregas);
         displayStock(currentStock);
         
         loadAllAccesoriosDropdowns();
@@ -1389,9 +1389,11 @@
       }
     }
 
-    function calculateStock(entradas) {
+    // ===== FUNCIÓN DE CÁLCULO DE STOCK CORREGIDA =====
+    function calculateStock(entradas, entregas) {
       const stockMap = {};
-      
+
+      // 1. Sumar todas las entradas para cada número de parte
       entradas.forEach(entrada => {
         const numeroParte = entrada["Número de Parte"];
         if (!stockMap[numeroParte]) {
@@ -1399,36 +1401,42 @@
             "Número de Parte": numeroParte,
             "Descripción del accesorio": entrada["Descripción del accesorio"],
             "Ubicación": entrada["Ubicación"],
-            "Cantidad Disponible": 0,
+            "Cantidad Ingresada Total": 0,
+            "Cantidad Entregada Total": 0,
             "Imágenes": entrada["Imágenes"],
             "Ruta de Imagen": entrada["Ruta de Imagen"],
             "Última Entrada": entrada["Fecha de Entrada"],
             "entrada_id": entrada.id
           };
         }
+        stockMap[numeroParte]["Cantidad Ingresada Total"] += (entrada["Cantidad ingresada"] || 0);
         
-        let cantidadDisponible = entrada["Cantidad ingresada"];
-        
-        if (currentEntregas && currentEntregas.length > 0) {
-          const entregasDelItem = currentEntregas.filter(entrega => 
-            entrega["ID de Accesorio"] === numeroParte && !entrega["Cancelada"]
-          );
-          
-          const totalEntregado = entregasDelItem.reduce((total, entrega) => 
-            total + (entrega["Cantidad"] || 0), 0
-          );
-          
-          cantidadDisponible -= totalEntregado;
-        }
-        
-        stockMap[numeroParte]["Cantidad Disponible"] += cantidadDisponible;
-        
+        // Mantener la información más reciente
         if (new Date(entrada["Fecha de Entrada"]) > new Date(stockMap[numeroParte]["Última Entrada"])) {
-          stockMap[numeroParte]["Última Entrada"] = entrada["Fecha de Entrada"];
+          stockMap[numeroParte]["Descripción del accesorio"] = entrada["Descripción del accesorio"];
+          stockMap[numeroParte]["Ubicación"] = entrada["Ubicación"];
+          stockMap[numeroParte]["Imágenes"] = entrada["Imágenes"];
+          stockMap[numeroParte]["Ruta de Imagen"] = entrada["Ruta de Imagen"];
           stockMap[numeroParte]["entrada_id"] = entrada.id;
+          stockMap[numeroParte]["Última Entrada"] = entrada["Fecha de Entrada"];
         }
       });
-      
+
+      // 2. Sumar todas las entregas no canceladas para cada número de parte
+      entregas.forEach(entrega => {
+        if (!entrega["Cancelada"]) {
+          const numeroParte = entrega["ID de Accesorio"];
+          if (stockMap[numeroParte]) {
+            stockMap[numeroParte]["Cantidad Entregada Total"] += (entrega["Cantidad"] || 0);
+          }
+        }
+      });
+
+      // 3. Calcular el stock disponible final
+      Object.values(stockMap).forEach(item => {
+        item["Cantidad Disponible"] = item["Cantidad Ingresada Total"] - item["Cantidad Entregada Total"];
+      });
+
       return Object.values(stockMap);
     }
 
@@ -1456,7 +1464,7 @@
           <td class="py-3 px-4 border-b font-medium">${item["Número de Parte"]}</td>
           <td class="py-3 px-4 border-b">${item["Descripción del accesorio"]}</td>
           <td class="py-3 px-4 border-b">${item["Ubicación"]}</td>
-          <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}">${item["Cantidad Disponible"]}</td>
+          <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}'>${item["Cantidad Disponible"]}</td>
           <td class="py-3 px-4 border-b text-center">${imageCell}</td>
           <td class="py-3 px-4 border-b text-center">
             <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock(${item.entrada_id})" title="Editar">
@@ -1650,6 +1658,7 @@
       }
     }
 
+    // ===== FUNCIÓN DE ENTREGA CORREGIDA =====
     async function handleEntregaSubmit(e) {
       e.preventDefault();
       
@@ -1684,24 +1693,29 @@
           const accesorioSelect = firstAccesorio.querySelector('.accesorio-select');
           const tipoSelect = firstAccesorio.querySelector('.tipo-select');
           const cantidadInput = firstAccesorio.querySelector('.cantidad-input');
+          const nuevaCantidad = parseInt(cantidadInput.value);
           
-          if (!accesorioSelect.value || !tipoSelect.value || !cantidadInput.value) {
+          if (!accesorioSelect.value || !tipoSelect.value || !nuevaCantidad) {
             throw new Error('Debe completar todos los campos del accesorio');
           }
           
-          // Validar stock
-          const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioSelect.value);
+          // ===== LÓGICA DE VALIDACIÓN DE STOCK CORREGIDA =====
           const entregaOriginal = currentEntregas.find(e => e.id === parseInt(entregaId));
-          const stockDisponible = stockItem ? stockItem["Cantidad Disponible"] + (entregaOriginal ? entregaOriginal["Cantidad"] : 0) : 0;
+          const cantidadOriginal = entregaOriginal ? entregaOriginal["Cantidad"] : 0;
+          const stockItem = currentStock.find(item => item["Número de Parte"] === accesorioSelect.value);
+          const stockActual = stockItem ? stockItem["Cantidad Disponible"] : 0;
           
-          if (stockDisponible < parseInt(cantidadInput.value)) {
-            throw new Error(`Stock insuficiente para ${accesorioSelect.value}. Disponible: ${stockDisponible}`);
+          // El stock disponible para la validación es el stock actual + la cantidad de la entrega original
+          const stockDisponibleParaEdicion = stockActual + cantidadOriginal;
+          
+          if (stockDisponibleParaEdicion < nuevaCantidad) {
+            throw new Error(`Stock insuficiente para ${accesorioSelect.value}. Disponible (considerando edición): ${stockDisponibleParaEdicion}`);
           }
           
           const updateData = {
             id: parseInt(entregaId),
             "ID de Accesorio": accesorioSelect.value,
-            "Cantidad": parseInt(cantidadInput.value),
+            "Cantidad": nuevaCantidad,
             "Tipo de Accesorio": tipoSelect.value,
             "Número de Orden": numeroOrden,
             "SH": sh || '',
@@ -1778,8 +1792,8 @@
         }
         
         clearEntregaForm();
-        loadStock();
         loadEntregas();
+        loadStock();
         
       } catch (error) {
         console.error('Error al guardar entrega:', error);
@@ -1986,7 +2000,6 @@
       showToast('Editando entrada. Modifique los campos y guarde los cambios.', 'info');
     }
 
-    // ===== NUEVA FUNCIÓN DE EDITAR ENTREGA =====
     function editEntrega(id) {
       const entrega = currentEntregas.find(e => e.id === id);
       if (!entrega) {
@@ -2110,7 +2123,6 @@
       }
     }
 
-    // ===== NUEVA FUNCIÓN DE CANCELAR ORDEN CON MOTIVO =====
     async function confirmCancelOrder(id) {
       const entrega = currentEntregas.find(e => e.id === id);
       if (!entrega) {
