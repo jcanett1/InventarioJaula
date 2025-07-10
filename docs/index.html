@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sistema de Gestión de Inventario - Stock Corregido</title>
+  <title>Sistema de Gestión de Inventario - Tabla Corregida</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css">
@@ -213,7 +213,7 @@
       <div class="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
           <h1 class="text-3xl font-bold text-gray-800 mb-2">Sistema de Gestión de Inventario</h1>
-          <p class="text-gray-600">Control completo de accesorios y entregas - Stock Corregido</p>
+          <p class="text-gray-600">Control completo de accesorios y entregas - Tabla Corregida</p>
         </div>
         <div class="mt-4 md:mt-0">
           <div id="connection-status" class="connection-indicator connection-loading">
@@ -472,7 +472,7 @@
             </button>
           </div>
           
-          <!-- Tabla de stock -->
+          <!-- Tabla de stock CORREGIDA -->
           <div class="table-container responsive-table">
             <table id="stock-table" class="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
               <thead class="bg-gray-100">
@@ -1440,6 +1440,7 @@
       return Object.values(stockMap);
     }
 
+    // ===== FUNCIÓN DISPLAYSTOCK CORREGIDA =====
     function displayStock(stock) {
       const stockItems = safeGetElement('stock-items');
       if (!stockItems) return;
@@ -1456,24 +1457,29 @@
         const row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 transition-colors';
         
+        // Preparar celda de imagen
         const imageCell = item["Imágenes"] && item["Ruta de Imagen"] ? 
           `<img src="${getImageUrl(item["Ruta de Imagen"])}" alt="Miniatura" class="thumbnail mx-auto" onclick="showImageModal('${getImageUrl(item["Ruta de Imagen"])}')">` : 
           '<span class="text-gray-400 text-sm">Sin imagen</span>';
         
+        // Preparar celda de acciones
+        const actionsCell = `
+          <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock(${item.entrada_id})" title="Editar">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteStock('${item["Número de Parte"]}')" title="Eliminar">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        `;
+        
+        // ORDEN CORREGIDO DE LAS COLUMNAS
         row.innerHTML = `
           <td class="py-3 px-4 border-b font-medium">${item["Número de Parte"]}</td>
           <td class="py-3 px-4 border-b">${item["Descripción del accesorio"]}</td>
           <td class="py-3 px-4 border-b">${item["Ubicación"]}</td>
-          <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}'>${item["Cantidad Disponible"]}</td>
+          <td class="py-3 px-4 border-b text-right font-medium ${item["Cantidad Disponible"] <= 5 ? 'text-red-600' : 'text-green-600'}">${item["Cantidad Disponible"]}</td>
           <td class="py-3 px-4 border-b text-center">${imageCell}</td>
-          <td class="py-3 px-4 border-b text-center">
-            <button class="text-blue-600 hover:text-blue-800 mx-1 p-1" onclick="editStock(${item.entrada_id})" title="Editar">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="text-red-600 hover:text-red-800 mx-1 p-1" onclick="confirmDeleteStock('${item["Número de Parte"]}')" title="Eliminar">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </td>
+          <td class="py-3 px-4 border-b text-center">${actionsCell}</td>
         `;
         stockItems.appendChild(row);
       });
@@ -2340,4 +2346,3 @@
   </script>
 </body>
 </html>
-
